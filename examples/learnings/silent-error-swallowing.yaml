@@ -1,0 +1,11 @@
+id: "example-001-silent-error-swallowing"
+created: "2026-03-30T00:00:00Z"
+source: "gate:silent-failure-hunter"
+paths:
+  - "src/"
+tags:
+  - "error-handling"
+  - "silent-failure"
+pattern: "Bare catch blocks swallow errors silently"
+recommendation: "Every catch/rescue/except block must either re-raise, log with context, or return an error. Bare catch {} that silently continues is the #1 source of hard-to-debug production issues."
+raw_input: "Silent error swallowing via bare catch/fallback detected in 12 occurrences across 2 repos."

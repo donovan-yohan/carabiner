@@ -1,0 +1,11 @@
+id: "example-003-non-atomic-json-writes"
+created: "2026-03-30T00:00:00Z"
+source: "gate:silent-failure-hunter"
+paths:
+  - "src/"
+tags:
+  - "file-io"
+  - "data-integrity"
+pattern: "JSON file writes must be atomic (write-to-temp-then-rename)"
+recommendation: "Never use open('w') or os.Create() to write JSON/YAML files directly. The file is truncated before writing begins, so a crash mid-write produces an empty or partial file. Use the write-to-temp-then-rename pattern: write to a .tmp file, then os.Rename() atomically."
+raw_input: "JSON file corruption on non-atomic writes detected in 4 occurrences across 2 repos."

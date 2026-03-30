@@ -1,0 +1,11 @@
+id: "example-002-async-fire-and-forget"
+created: "2026-03-30T00:00:00Z"
+source: "gate:silent-failure-hunter"
+paths:
+  - "src/"
+tags:
+  - "async"
+  - "error-handling"
+pattern: "Async fire-and-forget discards errors from promises/goroutines"
+recommendation: "Every async operation (Promise, goroutine, Task) must have its error handled. Use Promise.catch(), errgroup, or structured concurrency. Unhandled rejections and panicking goroutines crash production silently."
+raw_input: "Async fire-and-forget / discarded promises detected in 5 occurrences across 2 repos."

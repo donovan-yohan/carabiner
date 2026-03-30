@@ -2,17 +2,16 @@
 
 ## MVP: Quality Layer
 
-### CLI Commands
-- [ ] `carabiner init` — scaffold `.carabiner/` directory, walk user through setup, optionally write carabiner context to AGENTS.md (repo or local)
+### CLI Commands (3 commands — eng review reduced scope from 5 to 3)
+- [ ] `carabiner init --mode repo|local` — scaffold `.carabiner/` directory. Flags only, no interactive prompts. Default mode=repo. Signals dir added to .gitignore.
 - [ ] `carabiner quality check --files <paths>` — retrieve relevant quality patterns. Path-prefix matching against learning paths. Return top N active learnings as markdown. Target: < 500ms (file I/O only, no model call).
-- [ ] `carabiner quality record --gate-id <id>` — capture a learning from gate failure. Reads gate output (score + rationale), calls cheap model (haiku-class) to extract structured pattern, saves learning YAML + initial fail signal. `--skip-extraction` flag for environments without model CLI.
-- [ ] `carabiner quality stats` — analytics. Per-learning: signal count, pass/fail ratio, last triggered. Computed from signal files at read time.
+- [ ] `carabiner quality record --gate-id <id> [--gate-result <path>] [--skip-extraction]` — capture a learning from gate failure. Reads gate output via --gate-result JSON file or stdin. Calls cheap model to extract structured pattern. Saves learning YAML (with raw_input audit trail) + initial fail signal to JSONL. `--skip-extraction` for environments without model CLI.
 
-### Storage
-- [ ] Learning YAML format: id (UUID), created, source_gate, status (computed, not stored), paths (directory prefixes), tags, pattern, recommendation
-- [ ] Signal files: append-only, one per gate result. `{timestamp}-{branch}-{learning}-{result}.yaml`. Never mutated.
+### Storage (Hybrid: YAML Learnings + JSONL Signals)
+- [ ] Learning YAML format: id (UUID), created, source, paths (directory prefixes), tags, pattern, recommendation, raw_input (audit trail), artifacts (branch, commit, design_doc)
+- [ ] Signal JSONL: append-only log at `.carabiner/quality/signals/signals.jsonl`. Local-only (.gitignore'd). Learnings committed, signals per-machine.
 - [ ] `.carabiner/quality/learnings/` for pattern files
-- [ ] `.carabiner/quality/signals/` for gate result signals
+- [ ] `.carabiner/quality/signals/` for JSONL signal log (gitignored)
 - [ ] `.carabiner/config.yaml` for settings
 
 ### Learning Extraction
@@ -30,6 +29,13 @@
 - [ ] Optionally writes carabiner usage instructions to AGENTS.md or .claude/CLAUDE.md
 
 ## Post-MVP: Quality Improvements
+
+### Signal Tracking + Stats (deferred from MVP by eng review)
+- [ ] `carabiner quality signal --learning-id <id> --result <pass|fail> --gate-id <id>` — record pass/fail against existing learning. Enables signal accumulation over time.
+- [ ] `carabiner quality stats` — analytics per learning: signal count, pass/fail ratio, last triggered, confidence. Computed from JSONL at read time.
+- [ ] Signal count display in `quality check` output (e.g., "4 failures, 2 passes")
+- [ ] Dormant learning filtering in `quality check` (requires signal history)
+- [ ] Duplicate detection in `quality record` (fuzzy match on pattern text or same source + paths)
 
 ### Staleness and Decay
 - [ ] Recurrence tracking: if gate passes and learning was relevant, track pass signals. After N consecutive passes, mark as dormant (pattern internalized).

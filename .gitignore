@@ -1,0 +1,10 @@
+# Binary (root only, not cmd/carabiner/ or internal/carabiner/)
+/carabiner
+
+# Go
+*.exe
+*.test
+*.out
+
+# OS
+.DS_Store
