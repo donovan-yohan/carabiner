@@ -9,14 +9,13 @@ import (
 )
 
 // LoadEnforceConfig reads and parses enforce.yaml from the config directory.
-// Returns DefaultEnforceConfig if the file doesn't exist.
+// Returns an error if the file doesn't exist.
 func LoadEnforceConfig(configDir string) (*EnforceConfig, error) {
 	path := filepath.Join(configDir, "enforce.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			cfg := DefaultEnforceConfig()
-			return cfg, nil
+			return nil, fmt.Errorf("enforce config not found: %s", path)
 		}
 		return nil, fmt.Errorf("reading enforce config: %w", err)
 	}
@@ -37,7 +36,7 @@ func DefaultEnforceConfig() *EnforceConfig {
 		Behavior: BehaviorConfig{
 			FailOnWarning:   true,
 			StopOnFirstFail: false,
-			Parallel:        true,
+			Parallel:        false,
 		},
 	}
 }

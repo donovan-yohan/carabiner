@@ -37,30 +37,25 @@ var enforceCmd = &cobra.Command{
 	Long:  "Run configured enforcement tools from enforce.yaml and return pass/fail exit codes for automation.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if enforceAll && enforceTool != "" {
-			fmt.Fprintf(os.Stderr, "--all and --tool cannot be used together\n")
-			os.Exit(2)
+			return fmt.Errorf("--all and --tool cannot be used together")
 		}
 
 		if enforceOutput != "text" && enforceOutput != "json" {
-			fmt.Fprintf(os.Stderr, "invalid --output value %q (allowed: text, json)\n", enforceOutput)
-			os.Exit(2)
+			return fmt.Errorf("invalid --output value %q (allowed: text, json)", enforceOutput)
 		}
 
 		cfgDir, err := carabiner.FindConfigDir(configDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(2)
+			return fmt.Errorf("finding config dir: %w", err)
 		}
 
 		cfg, err := enforce.LoadEnforceConfig(cfgDir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(2)
+			return fmt.Errorf("loading enforce config: %w", err)
 		}
 
 		if err := enforce.ValidateEnforceConfig(cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(2)
+			return fmt.Errorf("validating enforce config: %w", err)
 		}
 
 		selectedTool := enforceTool
@@ -73,24 +68,21 @@ var enforceCmd = &cobra.Command{
 			if result != nil {
 				printEnforceResult(result, enforceOutput)
 			}
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-			os.Exit(2)
+			return fmt.Errorf("running enforcement: %w", err)
 		}
 
 		printEnforceResult(result, enforceOutput)
 
-		switch result.ExitCode {
-		case 0:
+		if result.ExitCode == 0 {
 			if enforceOutput == "text" {
 				fmt.Println("All checks passed")
 			}
 			return nil
-		case 1:
-			os.Exit(1)
-		default:
-			os.Exit(2)
 		}
 
+		// Tool(s) failed - exit directly to preserve exit code
+		// (Returning error would cause Execute to exit with 2)
+		os.Exit(result.ExitCode)
 		return nil
 	},
 }

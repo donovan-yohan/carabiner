@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -51,7 +50,7 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
-		logEvent(cmd, true)
+		logEvent(cmd)
 	},
 }
 
@@ -62,7 +61,7 @@ func Execute() {
 		if executed != nil {
 			executedCommand = commandLabel(executed)
 		}
-		logEvent(executed, false)
+		logEvent(executed)
 		fmt.Fprintln(os.Stderr, err)
 		if db != nil {
 			_ = db.Close()
@@ -79,7 +78,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configDir, "config-dir", "", "path to .carabiner directory (default: walk up from CWD)")
 }
 
-func logEvent(cmd *cobra.Command, async bool) {
+func logEvent(cmd *cobra.Command) {
 	if db == nil {
 		return
 	}
@@ -95,13 +94,6 @@ func logEvent(cmd *cobra.Command, async bool) {
 		Branch:     gitValue("rev-parse", "--abbrev-ref", "HEAD"),
 		Commit:     gitValue("rev-parse", "HEAD"),
 		Metadata:   metadataPayload(),
-	}
-
-	if async {
-		go func() {
-			_ = events.AppendEvent(db, event)
-		}()
-		return
 	}
 
 	_ = events.AppendEvent(db, event)
@@ -151,18 +143,10 @@ func argsPayload(cmd *cobra.Command) string {
 }
 
 func metadataPayload() string {
-	username := ""
-	if u, err := user.Current(); err == nil {
-		username = u.Username
-	}
-
 	meta := map[string]any{
-		"os":         runtime.GOOS,
-		"arch":       runtime.GOARCH,
-		"user":       username,
-		"pid":        os.Getpid(),
-		"cwd":        safeGetwd(),
-		"commandRaw": os.Args,
+		"os":   runtime.GOOS,
+		"arch": runtime.GOARCH,
+		"pid":  os.Getpid(),
 	}
 
 	data, err := json.Marshal(meta)
@@ -170,14 +154,6 @@ func metadataPayload() string {
 		return "{}"
 	}
 	return string(data)
-}
-
-func safeGetwd() string {
-	wd, err := os.Getwd()
-	if err != nil {
-		return ""
-	}
-	return wd
 }
 
 func gitValue(args ...string) string {

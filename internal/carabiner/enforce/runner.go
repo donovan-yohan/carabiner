@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"sort"
 	"time"
 )
 
@@ -86,6 +87,7 @@ func RunEnforce(ctx context.Context, cfg *EnforceConfig, selectedTool string) (*
 			}
 		}
 	}
+	sort.Strings(toolsToRun)
 
 	for _, name := range toolsToRun {
 		toolCfg := cfg.Tools[name]
@@ -94,10 +96,14 @@ func RunEnforce(ctx context.Context, cfg *EnforceConfig, selectedTool string) (*
 		var cancel context.CancelFunc
 		if toolCfg.Timeout > 0 {
 			toolCtx, cancel = context.WithTimeout(ctx, time.Duration(toolCfg.Timeout)*time.Second)
-			defer cancel()
 		}
 
 		toolResult, err := RunTool(toolCtx, name, toolCfg)
+
+		if cancel != nil {
+			cancel()
+		}
+
 		if err != nil {
 			result.Results = append(result.Results, *toolResult)
 			result.ExitCode = 2

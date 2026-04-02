@@ -6,13 +6,13 @@ tools:
   golangci-lint:
     enabled: true
     command: "golangci-lint"
-    args: ["run", "--tests", "--max-warnings=0"]
+    args: ["run", "--tests"]
     files: ["**/*.go"]
 
   gofmt:
     enabled: true
     command: "gofmt"
-    args: ["-l", "-d"]
+    args: ["-l", "-d", "."]
     files: ["**/*.go"]
 
   staticcheck:

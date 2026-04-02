@@ -9,13 +9,13 @@ tools:
   gofmt:
     enabled: true
     command: "gofmt"
-    args: ["-l", "-d"]
+    args: ["-l", "-d", "."]
     files: ["cmd/**/*.go", "internal/**/*.go"]
 
   staticcheck:
     enabled: true
     command: "staticcheck"
-    args: ["..."]
+    args: ["./..."]
     files: ["cmd/", "internal/"]
 
   gotestsum:

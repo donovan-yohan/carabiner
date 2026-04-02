@@ -92,42 +92,20 @@ behavior:
 	}
 }
 
-func TestLoadEnforceConfig_MissingFile_ReturnsDefault(t *testing.T) {
-	// Create temp directory without config
+func TestLoadEnforceConfig_MissingFile_ReturnsError(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "carabiner-enforce-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Load config from empty directory
 	cfg, err := LoadEnforceConfig(tmpDir)
-	if err != nil {
-		t.Fatalf("LoadEnforceConfig returned error: %v", err)
+	if err == nil {
+		t.Fatal("Expected error when config file missing, got nil")
 	}
 
-	// Should return default config
-	if cfg == nil {
-		t.Fatal("Expected non-nil default config")
-	}
-
-	if cfg.Version != 1 {
-		t.Errorf("Expected default version 1, got %d", cfg.Version)
-	}
-
-	if len(cfg.Tools) != 0 {
-		t.Errorf("Expected 0 tools in default config, got %d", len(cfg.Tools))
-	}
-
-	// Verify default behavior settings
-	if cfg.Behavior.FailOnWarning != true {
-		t.Error("Expected default FailOnWarning to be true")
-	}
-	if cfg.Behavior.StopOnFirstFail != false {
-		t.Error("Expected default StopOnFirstFail to be false")
-	}
-	if cfg.Behavior.Parallel != true {
-		t.Error("Expected default Parallel to be true")
+	if cfg != nil {
+		t.Error("Expected nil config when file missing")
 	}
 }
 
@@ -299,7 +277,7 @@ func TestDefaultEnforceConfig(t *testing.T) {
 	if cfg.Behavior.StopOnFirstFail != false {
 		t.Error("Expected default StopOnFirstFail to be false")
 	}
-	if cfg.Behavior.Parallel != true {
-		t.Error("Expected default Parallel to be true")
+	if cfg.Behavior.Parallel != false {
+		t.Error("Expected default Parallel to be false")
 	}
 }
