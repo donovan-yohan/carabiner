@@ -116,9 +116,77 @@ func InitWithTemplate(mode, templateName string, addOns []string) error {
 		}
 	}
 
+	if len(addOns) > 0 {
+		fmt.Fprintf(os.Stderr, "\nTo complete setup, run:\n")
+		for _, addOn := range addOns {
+			switch addOn {
+			case "vigiles":
+				for _, cmd := range GetVigilesInstallCommands() {
+					fmt.Fprintf(os.Stderr, "  %s\n", cmd)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
 func ApplyVigilesAddOn(cwd string) error {
-	return fmt.Errorf("vigiles add-on not implemented yet")
+	vigilesWorkflow := "name: Validate agent instructions\n" +
+		"on: [push, pull_request]\n" +
+		"jobs:\n" +
+		"  validate:\n" +
+		"    runs-on: ubuntu-latest\n" +
+		"    steps:\n" +
+		"      - uses: actions/checkout@v4\n" +
+		"      - uses: zernie/vigiles@main\n"
+
+	wfDir := filepath.Join(cwd, ".github", "workflows")
+	if err := os.MkdirAll(wfDir, 0755); err != nil {
+		return fmt.Errorf("creating .github/workflows: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(wfDir, "vigiles.yml"), []byte(vigilesWorkflow), 0644); err != nil {
+		return fmt.Errorf("writing vigiles.yml: %w", err)
+	}
+
+	claudeDir := filepath.Join(cwd, ".claude")
+	if info, err := os.Stat(claudeDir); err == nil && info.IsDir() {
+		settings := "{\n" +
+			"  \"hooks\": {\n" +
+			"    \"PostToolUse\": [\n" +
+			"      {\n" +
+			"        \"matcher\": \"Edit|Write\",\n" +
+			"        \"command\": \"npx vigiles CLAUDE.md\"\n" +
+			"      }\n" +
+			"    ]\n" +
+			"  }\n" +
+			"}\n"
+		if err := os.WriteFile(filepath.Join(claudeDir, "settings.json"), []byte(settings), 0644); err != nil {
+			return fmt.Errorf("writing .claude/settings.json: %w", err)
+		}
+	}
+
+	claudeMD := "# Agent Guidance\n\n" +
+		"## Before committing\n" +
+		"Run `carabiner enforce --all` to verify linting passes.\n\n" +
+		"## Feedback loops\n" +
+		"When you notice a recurring mistake in code review, run `/pr-to-lint-rule` to convert it into an enforced lint rule.\n\n" +
+		"## Quality patterns\n" +
+		"Run `carabiner quality check --files <files>` before implementation to see relevant learnings from past gate failures.\n"
+
+	claudePath := filepath.Join(cwd, "CLAUDE.md")
+	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
+		if err := os.WriteFile(claudePath, []byte(claudeMD), 0644); err != nil {
+			return fmt.Errorf("writing CLAUDE.md: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func GetVigilesInstallCommands() []string {
+	return []string{
+		"npm install -D vigiles",
+		"npx skills add zernie/vigiles",
+	}
 }
