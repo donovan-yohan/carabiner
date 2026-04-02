@@ -3,9 +3,9 @@
 ## MVP: Quality Layer
 
 ### CLI Commands (3 commands — eng review reduced scope from 5 to 3)
-- [ ] `carabiner init --mode repo|local` — scaffold `.carabiner/` directory. Flags only, no interactive prompts. Default mode=repo. Signals dir added to .gitignore.
-- [ ] `carabiner quality check --files <paths>` — retrieve relevant quality patterns. Path-prefix matching against learning paths. Return top N active learnings as markdown. Target: < 500ms (file I/O only, no model call).
-- [ ] `carabiner quality record --gate-id <id> [--gate-result <path>] [--skip-extraction]` — capture a learning from gate failure. Reads gate output via --gate-result JSON file or stdin. Calls cheap model to extract structured pattern. Saves learning YAML (with raw_input audit trail) + initial fail signal to JSONL. `--skip-extraction` for environments without model CLI.
+- [x] `carabiner init --mode repo|local` — scaffold `.carabiner/` directory. Flags only, no interactive prompts. Default mode=repo. Signals dir added to .gitignore.
+- [x] `carabiner quality check --files <paths>` — retrieve relevant quality patterns. Path-prefix matching against learning paths. Return top N active learnings as markdown. Target: < 500ms (file I/O only, no model call).
+- [x] `carabiner quality record --gate-id <id> [--gate-result <path>] [--skip-extraction]` — capture a learning from gate failure. Reads gate output via --gate-result JSON file or stdin. Calls cheap model to extract structured pattern. Saves learning YAML (with raw_input audit trail) + initial fail signal to JSONL. `--skip-extraction` for environments without model CLI.
 
 ### Storage (Hybrid: YAML Learnings + JSONL Signals)
 - [ ] Learning YAML format: id (UUID), created, source, paths (directory prefixes), tags, pattern, recommendation, raw_input (audit trail), artifacts (branch, commit, design_doc)

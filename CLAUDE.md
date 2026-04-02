@@ -1,6 +1,6 @@
 # carabiner
 
-Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from review failures) and **knowledge** (domain semantics). CLI-first, any agent that can run `sh -c` can use it.
+Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from review failures) and **enforcement** (deterministic feed-forward checks). CLI-first, any agent that can run `sh -c` can use it.
 
 ## Quick Reference
 
@@ -10,6 +10,8 @@ Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from r
 | Test | `go test ./...` |
 | Run | `./carabiner` |
 | Init | `carabiner init` |
+| Enforce | `carabiner enforce --all` |
+| Events | `carabiner events list` |
 
 ## Documentation Map
 
@@ -18,9 +20,13 @@ Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from r
 | Philosophy | `docs/PHILOSOPHY.md` | Three roles, H-as-feature, why CLI not plugin, false positive contamination |
 | TODOs | `docs/TODOS.md` | MVP scope, post-MVP features, knowledge layer design questions, backlog |
 | Origin | `docs/ORIGIN.md` | How carabiner emerged from the Slate analysis session, key references |
+| Design | `docs/design/2026-04-02-feed-forward-enforcement.md` | Enforce and events layer design |
 
 ## Key Patterns
 
+- **Enforcement**: `.carabiner/enforce.yaml` defines tools (golangci-lint, gofmt, etc.). Sequential execution with 3-state exit codes: 0=pass, 1=enforcement fail, 2=config error.
+- **Templates**: `.carabiner/templates/` has enforce.yaml for Go and React+TypeScript. Generate strict tool configs.
+- **Event log**: SQLite at `.carabiner/carabiner.db`. Auto-logs every carabiner invocation.
 - **Quality patterns**: YAML files in `.carabiner/quality/learnings/`. Path-prefix matching for retrieval. Append-only signals for concurrent safety.
 - **CLI-first**: the binary IS the interface. Lightweight agent plugins are convenience wrappers that call the CLI.
 - **Separate from belayer**: carabiner is the harness, belayer is the orchestrator. Frameworks (shipped with belayer) compose both. Either works alone.
