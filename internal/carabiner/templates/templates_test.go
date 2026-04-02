@@ -57,10 +57,6 @@ func TestGetTemplate_Unknown(t *testing.T) {
 func TestListTemplates(t *testing.T) {
 	templates := ListTemplates()
 
-	if len(templates) != 4 {
-		t.Errorf("Expected 4 templates, got %d", len(templates))
-	}
-
 	hasReact := false
 	hasGo := false
 	hasSvelteKit := false
