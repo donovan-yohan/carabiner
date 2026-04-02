@@ -20,10 +20,10 @@ func setupLearnings(t *testing.T, learnings []Learning) string {
 
 func TestCheck_PathPrefixMatch(t *testing.T) {
 	tests := []struct {
-		name           string
-		learningPaths  []string
-		inputFiles     []string
-		wantMatch      bool
+		name          string
+		learningPaths []string
+		inputFiles    []string
+		wantMatch     bool
 	}{
 		{
 			name:          "exact directory match",

@@ -21,8 +21,10 @@ func TestFindConfigDir_WalkUp(t *testing.T) {
 	}
 
 	orig, _ := os.Getwd()
-	defer os.Chdir(orig)
-	os.Chdir(subdir)
+	if err := os.Chdir(subdir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	got, err := FindConfigDir("")
 	if err != nil {
@@ -47,8 +49,10 @@ func TestFindConfigDir_Override(t *testing.T) {
 func TestFindConfigDir_NotFound(t *testing.T) {
 	tmp := t.TempDir()
 	orig, _ := os.Getwd()
-	defer os.Chdir(orig)
-	os.Chdir(tmp)
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	_, err := FindConfigDir("")
 	if err == nil {

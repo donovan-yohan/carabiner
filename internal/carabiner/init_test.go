@@ -10,8 +10,10 @@ func TestInit_RepoMode(t *testing.T) {
 	tmp := t.TempDir()
 	tmp, _ = filepath.EvalSymlinks(tmp) // macOS /var -> /private/var
 	orig, _ := os.Getwd()
-	defer os.Chdir(orig)
-	os.Chdir(tmp)
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatalf("chdir to temp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	dir, err := Init("repo")
 	if err != nil {
@@ -49,8 +51,10 @@ func TestInit_RepoMode(t *testing.T) {
 func TestInit_Idempotent(t *testing.T) {
 	tmp := t.TempDir()
 	orig, _ := os.Getwd()
-	defer os.Chdir(orig)
-	os.Chdir(tmp)
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatalf("chdir to temp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(orig) })
 
 	dir1, err := Init("repo")
 	if err != nil {
@@ -59,7 +63,9 @@ func TestInit_Idempotent(t *testing.T) {
 
 	// Write a marker file
 	marker := filepath.Join(dir1, "marker.txt")
-	os.WriteFile(marker, []byte("test"), 0644)
+	if err := os.WriteFile(marker, []byte("test"), 0644); err != nil {
+		t.Fatalf("write marker file: %v", err)
+	}
 
 	dir2, err := Init("repo")
 	if err != nil {

@@ -45,6 +45,8 @@ var checkCmd = &cobra.Command{
 
 func init() {
 	checkCmd.Flags().StringSliceVar(&checkFiles, "files", nil, "file paths to check for relevant patterns")
-	checkCmd.MarkFlagRequired("files")
+	if err := checkCmd.MarkFlagRequired("files"); err != nil {
+		panic(err)
+	}
 	qualityCmd.AddCommand(checkCmd)
 }

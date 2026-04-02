@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	recordGateID        string
-	recordGateResult    string
-	recordSkipExtract   bool
+	recordGateID      string
+	recordGateResult  string
+	recordSkipExtract bool
 )
 
 var recordCmd = &cobra.Command{
@@ -77,6 +77,8 @@ func init() {
 	recordCmd.Flags().StringVar(&recordGateID, "gate-id", "", "identifier for the gate run (required)")
 	recordCmd.Flags().StringVar(&recordGateResult, "gate-result", "", "path to gate result JSON file")
 	recordCmd.Flags().BoolVar(&recordSkipExtract, "skip-extraction", false, "store raw input without model extraction")
-	recordCmd.MarkFlagRequired("gate-id")
+	if err := recordCmd.MarkFlagRequired("gate-id"); err != nil {
+		panic(err)
+	}
 	qualityCmd.AddCommand(recordCmd)
 }

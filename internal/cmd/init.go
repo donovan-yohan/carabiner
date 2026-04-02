@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/donovan-yohan/carabiner/internal/carabiner"
+	"github.com/donovan-yohan/carabiner/internal/carabiner/events"
 	"github.com/spf13/cobra"
 )
 
@@ -18,6 +20,13 @@ var initCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		db, err := events.InitDB(filepath.Join(dir, "carabiner.db"))
+		if err != nil {
+			return fmt.Errorf("initializing events database: %w", err)
+		}
+		defer db.Close()
+
 		fmt.Printf("Initialized carabiner at %s\n", dir)
 		return nil
 	},

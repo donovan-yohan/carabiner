@@ -1,0 +1,30 @@
+version: 1
+tools:
+  golangci-lint:
+    enabled: true
+    command: "golangci-lint"
+    args: ["run", "--tests"]
+    files: ["cmd/**/*.go", "internal/**/*.go"]
+
+  gofmt:
+    enabled: true
+    command: "gofmt"
+    args: ["-l", "-d"]
+    files: ["cmd/**/*.go", "internal/**/*.go"]
+
+  staticcheck:
+    enabled: true
+    command: "staticcheck"
+    args: ["..."]
+    files: ["cmd/", "internal/"]
+
+  gotestsum:
+    enabled: true
+    command: "gotestsum"
+    args: ["--", "-race", "./internal/..."]
+    files: ["internal/**/*_test.go"]
+
+behavior:
+  fail_on_warning: true
+  stop_on_first_failure: false
+  parallel: false
