@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/donovan-yohan/carabiner/internal/carabiner/events"
 	"gopkg.in/yaml.v3"
 )
 
@@ -59,6 +60,14 @@ func Init(mode string) (string, error) {
 	gitignorePath := filepath.Join(configDir, "quality", "signals", ".gitignore")
 	if err := os.WriteFile(gitignorePath, []byte(gitignore), 0644); err != nil {
 		return "", fmt.Errorf("writing .gitignore: %w", err)
+	}
+
+	db, err := events.InitDB(filepath.Join(configDir, "carabiner.db"))
+	if err != nil {
+		return "", fmt.Errorf("initializing events database: %w", err)
+	}
+	if err := db.Close(); err != nil {
+		return "", fmt.Errorf("closing events database: %w", err)
 	}
 
 	return configDir, nil

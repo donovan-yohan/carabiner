@@ -1,6 +1,6 @@
 # carabiner
 
-Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns learned from review failures) and **knowledge** (domain semantics agents can't derive from code alone).
+Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns learned from review failures) and **enforcement** (deterministic feed-forward checks).
 
 Companion to [belayer](https://github.com/donovan-yohan/belayer) (orchestrator). You can use carabiner without belayer, and belayer without carabiner. They compose but don't depend on each other.
 
@@ -12,6 +12,17 @@ Carabiner is the repo's institutional memory for agents. It persists quality pat
 
 ## Two Jobs
 
+### Enforcement (feed-forward, deterministic)
+
+Before work starts, carabiner ensures conditions exist. Static analysis tools (eslint, golangci-lint, tsc) must pass. No bypass.
+
+```bash
+carabiner enforce --all              # run all configured tools
+carabiner enforce --tool eslint     # run specific tool
+```
+
+Exit codes: 0=pass, 1=enforcement fail, 2=config error.
+
 ### Quality (reactive, learned from failures)
 
 When an adversarial review gate catches a bug, carabiner records the pattern. Next time an agent touches those files, carabiner surfaces the relevant patterns. Every failed review makes future implementations better.
@@ -19,7 +30,6 @@ When an adversarial review gate catches a bug, carabiner records the pattern. Ne
 ```bash
 carabiner quality check --files src/auth/routes.ts    # what patterns apply here?
 carabiner quality record --gate-id <id>               # capture a learning from a gate failure
-carabiner quality stats                               # which patterns are effective?
 ```
 
 ### Knowledge (proactive, human-authored)
@@ -30,7 +40,7 @@ Domain knowledge agents need but can't derive from code. Business logic semantic
 carabiner knowledge query --context "calculating total spend"   # what do I need to know?
 ```
 
-**Status: aspirational.** Quality is the MVP. Knowledge is the next horizon. See [docs/TODOS.md](docs/TODOS.md) for the knowledge layer design questions.
+**Status: aspirational.** Enforcement and Quality are MVP. Knowledge is the next horizon. See [docs/TODOS.md](docs/TODOS.md).
 
 ## Quick Start
 
@@ -38,6 +48,17 @@ carabiner knowledge query --context "calculating total spend"   # what do I need
 go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest
 cd your-repo
 carabiner init
+carabiner enforce --all   # verify your tools pass
+```
+
+## Event Log
+
+Every carabiner invocation is logged to SQLite for workflow observability.
+
+```bash
+carabiner events list                  # recent invocations
+carabiner events list --limit 20      # with limit
+carabiner events list --command enforce  # filter by command
 ```
 
 ## How It Works With Belayer
@@ -52,4 +73,4 @@ See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the full reasoning behind carab
 
 ## Status
 
-Early development. Building the quality layer first.
+Active development. Enforcement and Quality are complete. Templates available for Go and React+TypeScript projects.

@@ -3,9 +3,9 @@
 ## MVP: Quality Layer
 
 ### CLI Commands (3 commands — eng review reduced scope from 5 to 3)
-- [ ] `carabiner init --mode repo|local` — scaffold `.carabiner/` directory. Flags only, no interactive prompts. Default mode=repo. Signals dir added to .gitignore.
-- [ ] `carabiner quality check --files <paths>` — retrieve relevant quality patterns. Path-prefix matching against learning paths. Return top N active learnings as markdown. Target: < 500ms (file I/O only, no model call).
-- [ ] `carabiner quality record --gate-id <id> [--gate-result <path>] [--skip-extraction]` — capture a learning from gate failure. Reads gate output via --gate-result JSON file or stdin. Calls cheap model to extract structured pattern. Saves learning YAML (with raw_input audit trail) + initial fail signal to JSONL. `--skip-extraction` for environments without model CLI.
+- [x] `carabiner init --mode repo|local` — scaffold `.carabiner/` directory. Flags only, no interactive prompts. Default mode=repo. Signals dir added to .gitignore.
+- [x] `carabiner quality check --files <paths>` — retrieve relevant quality patterns. Path-prefix matching against learning paths. Return top N active learnings as markdown. Target: < 500ms (file I/O only, no model call).
+- [x] `carabiner quality record --gate-id <id> [--gate-result <path>] [--skip-extraction]` — capture a learning from gate failure. Reads gate output via --gate-result JSON file or stdin. Calls cheap model to extract structured pattern. Saves learning YAML (with raw_input audit trail) + initial fail signal to JSONL. `--skip-extraction` for environments without model CLI.
 
 ### Storage (Hybrid: YAML Learnings + JSONL Signals)
 - [ ] Learning YAML format: id (UUID), created, source, paths (directory prefixes), tags, pattern, recommendation, raw_input (audit trail), artifacts (branch, commit, design_doc)
@@ -71,6 +71,70 @@ The knowledge layer is aspirational. It deserves its own brainstorm session. Ope
 - [ ] Authoring: who writes knowledge entries? Human only? Model-assisted? Extracted from PR review comments?
 - [ ] Staleness: knowledge entries tied to specific code paths can be checked for drift. Domain rules ("CREDIT rows are subtracted") are true until schema changes. Different decay model than quality patterns.
 - [ ] Relationship to AGENTS.md / CLAUDE.md: knowledge entries are richer and more structured than markdown agent rules. Do they replace those files, supplement them, or generate them?
+
+### Architecture Inspiration: Claude Code's Memory System
+
+Claude Code's memory is a 3-layer bandwidth-aware design worth studying for our knowledge layer:
+
+**Index = pointers, not storage.** MEMORY.md is always loaded (~150 chars/line) but only contains one-line hooks to topic files. Actual content lives in separate files, fetched on demand. This prevents context pollution — the model sees what exists without paying the token cost of everything stored.
+
+**What they DON'T store is the real insight.** No debugging logs, no code structure, no PR history, no git-derivable facts. If it can be derived from the current state of the repo, it's not persisted. This is directly relevant to us: quality patterns capture what agents get WRONG, knowledge should capture what agents CAN'T DERIVE — not what they can grep for.
+
+**Strict write discipline.** Write to file → then update index. Never dump content into the index. Two-step process prevents entropy. We should consider the same: knowledge entries are files, the index is generated/maintained separately.
+
+**Staleness is first-class.** Memory that contradicts current reality is treated as wrong, not as historical context. Code-derived facts are never stored because they go stale. For our knowledge layer: domain rules ("CREDIT rows are subtracted") rarely go stale, but code-path-tied knowledge ("the auth middleware validates tokens in X") drifts constantly. Different staleness models for different knowledge types.
+
+**Background consolidation (autoDream).** A forked subagent periodically merges, dedupes, removes contradictions, converts vague → absolute, aggressively prunes. Runs with limited tools to prevent corruption. We could do something similar: `carabiner knowledge compact` that re-evaluates entries against current codebase state.
+
+**Retrieval is skeptical.** Memory is a hint, not truth. The model must verify before using. This aligns with our philosophy — knowledge entries should be treated as strong suggestions that the agent validates against the current code, not as gospel.
+
+**Design questions this raises for carabiner:**
+- [ ] Should we adopt the index-as-pointers pattern? A `knowledge/INDEX.md` that's always injected, with detailed entries in separate files?
+- [ ] What's our equivalent of "don't store derivable facts"? Quality patterns have clear criteria (gate failures). Knowledge needs similar criteria for what's worth persisting vs. what the agent should just read from the code.
+- [ ] Do we need a consolidation pass? Quality patterns are append-only with signal tracking. Knowledge might need periodic rewriting to stay coherent as the codebase evolves.
+- [ ] How do we handle the bandwidth budget? If an agent calls `carabiner knowledge check`, how much context can we return before we're hurting more than helping?
+
+### Architecture Inspiration: PageIndex (VectifyAI/PageIndex)
+
+PageIndex is a "vectorless, reasoning-based RAG" framework. Instead of chunking documents and embedding them into a vector DB, it builds a hierarchical tree index (like a table of contents) and uses LLM reasoning to navigate to relevant sections. Claims 98.7% accuracy on FinanceBench, outperforming traditional vector RAG.
+
+**Key ideas relevant to carabiner's knowledge layer:**
+
+**Hierarchical tree index, not flat chunks.** Each node has a title, page range, LLM-generated summary, and children. This mirrors how a human expert navigates a document — top-down reasoning, not similarity search. For us: knowledge entries could form a tree (domain → subdomain → specific rule) rather than a flat list.
+
+**No embeddings, no vector DB.** The tree index fits in the LLM's context window. The model reasons over summaries to decide which branches to descend into. Only then is the actual content fetched. This is the same bandwidth trick as Claude Code's memory — index is cheap, content is fetched on demand.
+
+**Summaries as routing metadata.** Each node carries a natural-language summary that lets the LLM decide relevance without reading the full content. For carabiner: each knowledge entry could have a one-line summary used for retrieval, with the full rule/explanation fetched only when matched.
+
+**Design questions this raises:**
+- [ ] Could `carabiner knowledge check` build a lightweight tree index over knowledge entries (domain hierarchy + summaries) and let the calling agent reason over which entries to fetch in full?
+- [ ] Is the tree structure overkill for our scale? Quality patterns use simple path-prefix matching. Knowledge might need something between flat-tag-matching and full tree search.
+- [ ] PageIndex builds the index once (offline) and queries it many times. We could do the same: `carabiner knowledge index` rebuilds the tree, `carabiner knowledge check` queries it. The index is a cached artifact, not rebuilt per query.
+- [ ] Could we use this approach for the quality layer too? As learnings accumulate, a hierarchical index (by domain/path/tag) might retrieve better than flat path-prefix matching.
+
+### Synthesis: A 3-Layer Knowledge Architecture?
+
+Combining both inspirations, a possible architecture:
+
+```
+Layer 1: Index (always injected, ~token-cheap)
+  - One-line summaries per knowledge entry
+  - Hierarchical: domain → subdomain → entry
+  - Generated/cached by `carabiner knowledge index`
+
+Layer 2: Knowledge entries (fetched on demand)
+  - Full rules, context, rationale
+  - YAML or markdown files in `.carabiner/knowledge/`
+  - Each has: id, domain, paths, summary, content, last_verified
+
+Layer 3: Source material (never fetched, only referenced)
+  - Links to PRs, design docs, commit hashes where the knowledge originated
+  - Audit trail, not retrieval content
+```
+
+**Retrieval flow:** Agent calls `carabiner knowledge check --context <paths|domain>` → carabiner returns the Layer 1 index (or relevant subtree) → agent reasons over summaries → agent requests specific entries by ID → carabiner returns Layer 2 content.
+
+**Or simpler:** carabiner does the tree-search internally (path + tag + summary matching) and returns the top-N entries directly. Agent doesn't need to do multi-step retrieval. This is the MVP path — upgrade to agent-driven tree search later if flat matching proves insufficient.
 
 ## Backlog: Things From the Harness Plugin Worth Preserving
 
