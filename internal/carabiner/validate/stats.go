@@ -15,7 +15,6 @@ type ValidationStat struct {
 
 type StatsByName []ValidationStat
 
-// ValidationStats returns aggregated stats per validation name.
 func ValidationStats(db *sql.DB) (StatsByName, error) {
 	query := validationStatsQuery
 
