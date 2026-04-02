@@ -18,7 +18,6 @@ const (
 	ResultIrrelevant = "irrelevant"
 )
 
-// SQL queries as constants for consistency between code and tests
 const (
 	insertPendingQuery   = `INSERT INTO validation_events (id, run_id, name, script, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`
 	updateResultQuery    = `UPDATE validation_events SET status = 'responded', result = ?, responded_at = ? WHERE name = ? AND run_id = ? AND status = 'pending'`
@@ -38,13 +37,11 @@ type ValidationEvent struct {
 	OrphanedAt  *time.Time
 }
 
-// InsertPending inserts a new pending validation event.
 func InsertPending(db *sql.DB, event *ValidationEvent) error {
 	_, err := db.Exec(insertPendingQuery, event.ID, event.RunID, event.Name, event.Script, event.CreatedAt)
 	return err
 }
 
-// RecordResult updates a pending validation event with the agent's response.
 func RecordResult(db *sql.DB, name, runID, result string) error {
 	res, err := db.Exec(updateResultQuery, result, time.Now(), name, runID)
 	if err != nil {
@@ -60,7 +57,6 @@ func RecordResult(db *sql.DB, name, runID, result string) error {
 	return nil
 }
 
-// MarkOrphaned marks all pending validation events from previous runs as orphaned.
 func MarkOrphaned(db *sql.DB, currentRunID string) error {
 	_, err := db.Exec(markOrphanedQuery, time.Now(), currentRunID)
 	return err
