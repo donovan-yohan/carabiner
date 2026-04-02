@@ -51,6 +51,26 @@ carabiner init
 carabiner enforce --all   # verify your tools pass
 ```
 
+## For Agents
+
+Paste this into your session to install and initialize carabiner:
+
+```
+Install carabiner: run `go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest`
+Then initialize: `carabiner init --template <template> --add-ons vigiles`
+Templates: go | react-typescript | svelte-kit | svelte-vite
+Recommended: `carabiner init --template <your-framework> --add-ons vigiles`
+After init: run `carabiner enforce --all` before starting work
+```
+
+Non-interactive (pick one):
+```bash
+carabiner init --template go
+carabiner init --template react-typescript
+carabiner init --template svelte-kit
+carabiner init --template svelte-vite
+```
+
 ## Event Log
 
 Every carabiner invocation is logged to SQLite for workflow observability.
@@ -73,4 +93,4 @@ See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the full reasoning behind carab
 
 ## Status
 
-Active development. Enforcement and Quality are complete. Templates available for Go and React+TypeScript projects.
+Active development. Enforcement and Quality are MVP. Templates available for Go, React+TypeScript, SvelteKit, and Svelte+Vite. Universal vigiles add-on for lint rule annotation validation.
