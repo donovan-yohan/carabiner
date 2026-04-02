@@ -85,8 +85,8 @@ const SharedVitestConfig = "import { defineConfig } from 'vitest/config';\n\n" +
 	"  },\n" +
 	"});\n"
 
-// SharedPackageScripts is the scripts section for package.json (template uses full package.json).
-const SharedPackageScripts = "\"scripts\": {\n" +
+// SharedPackageScripts is the scripts object for SvelteKit (includes svelte-kit sync).
+const SharedPackageScripts = "{\n" +
 	"  \"dev\": \"vite dev\",\n" +
 	"  \"build\": \"vite build\",\n" +
 	"  \"preview\": \"vite preview\",\n" +
@@ -94,4 +94,30 @@ const SharedPackageScripts = "\"scripts\": {\n" +
 	"  \"check:watch\": \"svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch\",\n" +
 	"  \"test\": \"vitest run\",\n" +
 	"  \"test:watch\": \"vitest\"\n" +
-	"}\n"
+	"}"
+
+// SharedPackageScriptsVite is the scripts object for Svelte+Vite (no svelte-kit sync).
+const SharedPackageScriptsVite = "{\n" +
+	"  \"dev\": \"vite dev\",\n" +
+	"  \"build\": \"vite build\",\n" +
+	"  \"preview\": \"vite preview\",\n" +
+	"  \"check\": \"svelte-check --tsconfig ./tsconfig.json\",\n" +
+	"  \"check:watch\": \"svelte-check --tsconfig ./tsconfig.json --watch\",\n" +
+	"  \"test\": \"vitest run\",\n" +
+	"  \"test:watch\": \"vitest\"\n" +
+	"}"
+
+// SharedTsconfigVite is the tsconfig.json for Svelte+Vite (standalone, no .svelte-kit).
+const SharedTsconfigVite = "{\n" +
+	"  \"compilerOptions\": {\n" +
+	"    \"allowJs\": true,\n" +
+	"    \"checkJs\": true,\n" +
+	"    \"esModuleInterop\": true,\n" +
+	"    \"forceConsistentCasingInFileNames\": true,\n" +
+	"    \"resolveJsonModule\": true,\n" +
+	"    \"skipLibCheck\": true,\n" +
+	"    \"sourceMap\": true,\n" +
+	"    \"strict\": true,\n" +
+	"    \"moduleResolution\": \"bundler\"\n" +
+	"  }\n" +
+	"}"

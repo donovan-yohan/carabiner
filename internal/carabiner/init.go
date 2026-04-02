@@ -100,6 +100,10 @@ func InitWithTemplate(mode, templateName string, addOns []string) error {
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return fmt.Errorf("creating directory for %s: %w", filename, err)
 		}
+		if _, err := os.Stat(path); err == nil {
+			fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", path)
+			continue
+		}
 		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 			return fmt.Errorf("writing %s: %w", filename, err)
 		}
@@ -139,31 +143,38 @@ func ApplyVigilesAddOn(cwd string) error {
 		"    runs-on: ubuntu-latest\n" +
 		"    steps:\n" +
 		"      - uses: actions/checkout@v4\n" +
-		"      - uses: zernie/vigiles@main\n"
+		"      - uses: zernie/vigiles@4eaa5f4\n"
 
 	wfDir := filepath.Join(cwd, ".github", "workflows")
 	if err := os.MkdirAll(wfDir, 0755); err != nil {
 		return fmt.Errorf("creating .github/workflows: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(wfDir, "vigiles.yml"), []byte(vigilesWorkflow), 0644); err != nil {
+	wfPath := filepath.Join(wfDir, "vigiles.yml")
+	if _, err := os.Stat(wfPath); err == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", wfPath)
+	} else if err := os.WriteFile(wfPath, []byte(vigilesWorkflow), 0644); err != nil {
 		return fmt.Errorf("writing vigiles.yml: %w", err)
 	}
 
 	claudeDir := filepath.Join(cwd, ".claude")
-	if info, err := os.Stat(claudeDir); err == nil && info.IsDir() {
-		settings := "{\n" +
-			"  \"hooks\": {\n" +
-			"    \"PostToolUse\": [\n" +
-			"      {\n" +
-			"        \"matcher\": \"Edit|Write\",\n" +
-			"        \"command\": \"npx vigiles CLAUDE.md\"\n" +
-			"      }\n" +
-			"    ]\n" +
-			"  }\n" +
-			"}\n"
-		if err := os.WriteFile(filepath.Join(claudeDir, "settings.json"), []byte(settings), 0644); err != nil {
-			return fmt.Errorf("writing .claude/settings.json: %w", err)
-		}
+	if err := os.MkdirAll(claudeDir, 0755); err != nil {
+		return fmt.Errorf("creating .claude: %w", err)
+	}
+	settings := "{\n" +
+		"  \"hooks\": {\n" +
+		"    \"PostToolUse\": [\n" +
+		"      {\n" +
+		"        \"matcher\": \"Edit|Write\",\n" +
+		"        \"command\": \"npx vigiles CLAUDE.md\"\n" +
+		"      }\n" +
+		"    ]\n" +
+		"  }\n" +
+		"}\n"
+	settingsPath := filepath.Join(claudeDir, "settings.json")
+	if _, err := os.Stat(settingsPath); err == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", settingsPath)
+	} else if err := os.WriteFile(settingsPath, []byte(settings), 0644); err != nil {
+		return fmt.Errorf("writing .claude/settings.json: %w", err)
 	}
 
 	claudeMD := "# Agent Guidance\n\n" +
@@ -175,10 +186,10 @@ func ApplyVigilesAddOn(cwd string) error {
 		"Run `carabiner quality check --files <files>` before implementation to see relevant learnings from past gate failures.\n"
 
 	claudePath := filepath.Join(cwd, "CLAUDE.md")
-	if _, err := os.Stat(claudePath); os.IsNotExist(err) {
-		if err := os.WriteFile(claudePath, []byte(claudeMD), 0644); err != nil {
-			return fmt.Errorf("writing CLAUDE.md: %w", err)
-		}
+	if _, err := os.Stat(claudePath); err == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", claudePath)
+	} else if err := os.WriteFile(claudePath, []byte(claudeMD), 0644); err != nil {
+		return fmt.Errorf("writing CLAUDE.md: %w", err)
 	}
 
 	return nil
