@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/donovan-yohan/carabiner/internal/carabiner/events"
+	"github.com/donovan-yohan/carabiner/internal/carabiner/templates"
 	"gopkg.in/yaml.v3"
 )
 
@@ -71,4 +72,53 @@ func Init(mode string) (string, error) {
 	}
 
 	return configDir, nil
+}
+
+func InitWithTemplate(mode, templateName string, addOns []string) error {
+	configDir, err := Init(mode)
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := templates.GetTemplate(templateName)
+	if err != nil {
+		return fmt.Errorf("template: %w", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getting working directory: %w", err)
+	}
+
+	enforcePath := filepath.Join(configDir, "enforce.yaml")
+	if err := os.WriteFile(enforcePath, []byte(tmpl.EnforceYAML), 0644); err != nil {
+		return fmt.Errorf("writing enforce.yaml: %w", err)
+	}
+
+	for filename, content := range tmpl.ConfigFiles {
+		path := filepath.Join(cwd, filename)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			return fmt.Errorf("creating directory for %s: %w", filename, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+			return fmt.Errorf("writing %s: %w", filename, err)
+		}
+	}
+
+	for _, addOn := range addOns {
+		switch addOn {
+		case "vigiles":
+			if err := ApplyVigilesAddOn(cwd); err != nil {
+				return fmt.Errorf("vigiles add-on: %w", err)
+			}
+		default:
+			return fmt.Errorf("unknown add-on: %s", addOn)
+		}
+	}
+
+	return nil
+}
+
+func ApplyVigilesAddOn(cwd string) error {
+	return fmt.Errorf("vigiles add-on not implemented yet")
 }

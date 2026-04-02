@@ -10,12 +10,23 @@ import (
 )
 
 var initMode string
+var initTemplate string
+var initAddOns []string
 
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize .carabiner directory",
 	Long:  "Scaffold the .carabiner/ directory with config.yaml and quality subdirectories.",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if initTemplate != "" {
+			if err := carabiner.InitWithTemplate(initMode, initTemplate, initAddOns); err != nil {
+				return err
+			}
+
+			fmt.Printf("Initialized carabiner with template '%s'\n", initTemplate)
+			return nil
+		}
+
 		dir, err := carabiner.Init(initMode)
 		if err != nil {
 			return err
@@ -34,5 +45,7 @@ var initCmd = &cobra.Command{
 
 func init() {
 	initCmd.Flags().StringVar(&initMode, "mode", "repo", "storage mode: 'repo' (committed) or 'local' (~/.carabiner/)")
+	initCmd.Flags().StringVar(&initTemplate, "template", "", "Template to scaffold (go, react-typescript, svelte-kit, svelte-vite)")
+	initCmd.Flags().StringSliceVar(&initAddOns, "add-ons", nil, "Add-ons to install (e.g., vigiles)")
 	rootCmd.AddCommand(initCmd)
 }
