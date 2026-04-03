@@ -165,7 +165,12 @@ func ApplyVigilesAddOn(cwd string) error {
 		"    \"PostToolUse\": [\n" +
 		"      {\n" +
 		"        \"matcher\": \"Edit|Write\",\n" +
-		"        \"command\": \"npx vigiles CLAUDE.md\"\n" +
+		"        \"hooks\": [\n" +
+		"          {\n" +
+		"            \"type\": \"command\",\n" +
+		"            \"command\": \"npx vigiles CLAUDE.md\"\n" +
+		"          }\n" +
+		"        ]\n" +
 		"      }\n" +
 		"    ]\n" +
 		"  }\n" +

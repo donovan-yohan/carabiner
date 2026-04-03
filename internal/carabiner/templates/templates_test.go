@@ -59,20 +59,12 @@ func TestListTemplates(t *testing.T) {
 
 	hasReact := false
 	hasGo := false
-	hasSvelteKit := false
-	hasSvelteVite := false
 	for _, name := range templates {
 		if name == "react-typescript" {
 			hasReact = true
 		}
 		if name == "go" {
 			hasGo = true
-		}
-		if name == "svelte-kit" {
-			hasSvelteKit = true
-		}
-		if name == "svelte-vite" {
-			hasSvelteVite = true
 		}
 	}
 
@@ -81,113 +73,6 @@ func TestListTemplates(t *testing.T) {
 	}
 	if !hasGo {
 		t.Error("ListTemplates should include \"go\"")
-	}
-	if !hasSvelteKit {
-		t.Error("ListTemplates should include \"svelte-kit\"")
-	}
-	if !hasSvelteVite {
-		t.Error("ListTemplates should include \"svelte-vite\"")
-	}
-}
-
-func TestGetTemplate_SvelteKit(t *testing.T) {
-	tmpl, err := GetTemplate("svelte-kit")
-	if err != nil {
-		t.Fatalf("GetTemplate(\"svelte-kit\") failed: %v", err)
-	}
-	if tmpl.Name != "svelte-kit" {
-		t.Errorf("Expected Name \"svelte-kit\", got %q", tmpl.Name)
-	}
-	if tmpl.EnforceYAML == "" {
-		t.Error("EnforceYAML should not be empty")
-	}
-	if len(tmpl.ConfigFiles) == 0 {
-		t.Error("ConfigFiles should not be empty")
-	}
-}
-
-func TestGetTemplate_SvelteVite(t *testing.T) {
-	tmpl, err := GetTemplate("svelte-vite")
-	if err != nil {
-		t.Fatalf("GetTemplate(\"svelte-vite\") failed: %v", err)
-	}
-	if tmpl.Name != "svelte-vite" {
-		t.Errorf("Expected Name \"svelte-vite\", got %q", tmpl.Name)
-	}
-	if tmpl.EnforceYAML == "" {
-		t.Error("EnforceYAML should not be empty")
-	}
-	if len(tmpl.ConfigFiles) == 0 {
-		t.Error("ConfigFiles should not be empty")
-	}
-}
-
-func TestGetTemplate_SvelteAlias(t *testing.T) {
-	tmpl, err := GetTemplate("svelte")
-	if err != nil {
-		t.Fatalf("GetTemplate(\"svelte\") failed: %v", err)
-	}
-	if tmpl.Name != "svelte-kit" {
-		t.Errorf("Expected svelte alias to resolve to \"svelte-kit\", got %q", tmpl.Name)
-	}
-}
-
-func TestSvelteKitTemplate_HasRoutingFiles(t *testing.T) {
-	tmpl, err := GetTemplate("svelte-kit")
-	if err != nil {
-		t.Fatalf("GetTemplate failed: %v", err)
-	}
-	requiredFiles := []string{
-		"src/routes/+page.svelte",
-		"src/routes/+layout.svelte",
-		"src/routes/+page.server.ts",
-		"src/lib/components/Counter.svelte",
-		"svelte.config.js",
-		"vite.config.ts",
-	}
-	for _, f := range requiredFiles {
-		if _, ok := tmpl.ConfigFiles[f]; !ok {
-			t.Errorf("SvelteKit template missing file: %s", f)
-		}
-	}
-	if !strings.Contains(tmpl.EnforceYAML, "svelte-check") {
-		t.Error("enforce.yaml should contain svelte-check")
-	}
-}
-
-func TestSvelteViteTemplate_HasComponentFiles(t *testing.T) {
-	tmpl, err := GetTemplate("svelte-vite")
-	if err != nil {
-		t.Fatalf("GetTemplate failed: %v", err)
-	}
-	requiredFiles := []string{
-		"src/App.svelte",
-		"src/main.ts",
-		"src/lib/components/Counter.svelte",
-		"vite.config.ts",
-	}
-	for _, f := range requiredFiles {
-		if _, ok := tmpl.ConfigFiles[f]; !ok {
-			t.Errorf("SvelteVite template missing file: %s", f)
-		}
-	}
-	if _, ok := tmpl.ConfigFiles["src/routes/+page.svelte"]; ok {
-		t.Error("SvelteVite template should not have routing files")
-	}
-}
-
-func TestSvelteTemplates_FailOnWarning(t *testing.T) {
-	for _, name := range []string{"svelte-kit", "svelte-vite"} {
-		tmpl, err := GetTemplate(name)
-		if err != nil {
-			t.Fatalf("GetTemplate(%q) failed: %v", name, err)
-		}
-		if !strings.Contains(tmpl.EnforceYAML, "fail_on_warning: true") {
-			t.Errorf("%s enforce.yaml should have fail_on_warning: true", name)
-		}
-		if !strings.Contains(tmpl.EnforceYAML, "svelte-check") {
-			t.Errorf("%s enforce.yaml should contain svelte-check", name)
-		}
 	}
 }
 

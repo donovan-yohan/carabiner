@@ -45,7 +45,7 @@ var initCmd = &cobra.Command{
 
 func init() {
 	initCmd.Flags().StringVar(&initMode, "mode", "repo", "storage mode: 'repo' (committed) or 'local' (~/.carabiner/)")
-	initCmd.Flags().StringVar(&initTemplate, "template", "", "Template to scaffold (go, react-typescript, svelte-kit, svelte-vite)")
+	initCmd.Flags().StringVar(&initTemplate, "template", "", "Template to scaffold (go, react-typescript)")
 	initCmd.Flags().StringSliceVar(&initAddOns, "add-ons", nil, "Add-ons to install (e.g., vigiles)")
 	rootCmd.AddCommand(initCmd)
 }

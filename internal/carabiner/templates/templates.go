@@ -18,12 +18,6 @@ func GetTemplate(name string) (*Template, error) {
 		return getReactTypescriptTemplate(), nil
 	case "go":
 		return getGoTemplate(), nil
-	case "svelte-kit":
-		return getSvelteKitTemplate(), nil
-	case "svelte-vite":
-		return getSvelteViteTemplate(), nil
-	case "svelte":
-		return getSvelteKitTemplate(), nil
 	default:
 		return nil, fmt.Errorf("unknown template: %s", name)
 	}
@@ -34,7 +28,5 @@ func ListTemplates() []string {
 	return []string{
 		"go",
 		"react-typescript",
-		"svelte-kit",
-		"svelte-vite",
 	}
 }
