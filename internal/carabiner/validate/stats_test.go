@@ -15,9 +15,7 @@ func TestValidationStats_EmptyDatabase(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
-	mock.ExpectQuery(query).WillReturnRows(sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}))
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}))
 
 	stats, err := ValidationStats(db)
 	require.NoError(t, err)
@@ -30,13 +28,11 @@ func TestValidationStats_SingleValidation(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
 	lastRun := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	rows := sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}).
 		AddRow("auth-check", 2, 5, 1, lastRun)
 
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(rows)
 
 	stats, err := ValidationStats(db)
 	require.NoError(t, err)
@@ -57,8 +53,6 @@ func TestValidationStats_MultipleValidations(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
 	lastRun1 := time.Date(2024, 1, 10, 9, 0, 0, 0, time.UTC)
 	lastRun2 := time.Date(2024, 1, 15, 14, 30, 0, 0, time.UTC)
 
@@ -66,7 +60,7 @@ func TestValidationStats_MultipleValidations(t *testing.T) {
 		AddRow("auth-check", 1, 3, 0, lastRun1).
 		AddRow("lint-check", 0, 10, 2, lastRun2)
 
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(rows)
 
 	stats, err := ValidationStats(db)
 	require.NoError(t, err)
@@ -94,12 +88,10 @@ func TestValidationStats_WithNullLastRun(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
 	rows := sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}).
 		AddRow("new-validation", 1, 0, 0, nil)
 
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(rows)
 
 	stats, err := ValidationStats(db)
 	require.NoError(t, err)
@@ -117,9 +109,7 @@ func TestValidationStats_ReturnsErrorOnQueryFailure(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
-	mock.ExpectQuery(query).WillReturnError(assert.AnError)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnError(assert.AnError)
 
 	stats, err := ValidationStats(db)
 	assert.Error(t, err)
@@ -132,12 +122,10 @@ func TestValidationStats_ReturnsErrorOnScanFailure(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
 	rows := sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}).
 		AddRow("test", "invalid", 0, 0, time.Now())
 
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(rows)
 
 	stats, err := ValidationStats(db)
 	assert.Error(t, err)
@@ -150,8 +138,6 @@ func TestValidationStats_VariousStatuses(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	query := regexp.QuoteMeta(`SELECT name, SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending, SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded, SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned, MAX(created_at) as last_run FROM validation_events GROUP BY name ORDER BY name`)
-
 	lastRun := time.Now()
 
 	rows := sqlmock.NewRows([]string{"name", "pending", "responded", "orphaned", "last_run"}).
@@ -160,7 +146,7 @@ func TestValidationStats_VariousStatuses(t *testing.T) {
 		AddRow("all-orphaned", 0, 0, 5, lastRun).
 		AddRow("mixed", 2, 3, 1, lastRun)
 
-	mock.ExpectQuery(query).WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(validationStatsQuery)).WillReturnRows(rows)
 
 	stats, err := ValidationStats(db)
 	require.NoError(t, err)

@@ -11,6 +11,7 @@ import (
 	"github.com/donovan-yohan/carabiner/internal/carabiner/enforce"
 	"github.com/donovan-yohan/carabiner/internal/carabiner/events"
 	"github.com/donovan-yohan/carabiner/internal/carabiner/validate"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ var (
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "Run or respond to agent validations",
-	Long:  "Non-blocking reflection questions for agents. Run without args to execute validations, or with --result to record a response.",
+	Long:  "Non-blocking reflection questions for agents. Use 'validate execute' to run validations, 'validate respond' to record answers, and 'validate stats' to view statistics.",
 }
 
 var validateExecuteCmd = &cobra.Command{
@@ -63,7 +64,7 @@ var validateExecuteCmd = &cobra.Command{
 
 		for _, result := range results {
 			event := &validate.ValidationEvent{
-				ID:        result.Name + "-" + runID,
+				ID:        uuid.New().String(),
 				RunID:     runID,
 				Name:      result.Name,
 				Script:    result.Script,
@@ -73,8 +74,18 @@ var validateExecuteCmd = &cobra.Command{
 				return fmt.Errorf("inserting pending validation: %w", err)
 			}
 
+			question := result.Question
+			if result.Error != nil {
+				fmt.Fprintf(os.Stderr, "[VALIDATION WARNING] %s failed to execute: %v\n", result.Name, result.Error)
+				if question == "" {
+					question = fmt.Sprintf("Validation failed to execute: %v", result.Error)
+				} else {
+					question = fmt.Sprintf("%s\n[script execution failed: %v]", question, result.Error)
+				}
+			}
+
 			fmt.Printf("[VALIDATION] %s\n", result.Name)
-			fmt.Printf("%s\n", result.Question)
+			fmt.Printf("%s\n", question)
 			fmt.Printf("Run ID: %s\n\n", runID)
 		}
 

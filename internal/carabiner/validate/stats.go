@@ -17,16 +17,7 @@ type StatsByName []ValidationStat
 
 // ValidationStats returns aggregated stats per validation name.
 func ValidationStats(db *sql.DB) (StatsByName, error) {
-	query := `
-	SELECT 
-		name,
-		SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-		SUM(CASE WHEN status = 'responded' THEN 1 ELSE 0 END) as responded,
-		SUM(CASE WHEN status = 'orphaned' THEN 1 ELSE 0 END) as orphaned,
-		MAX(created_at) as last_run
-	FROM validation_events
-	GROUP BY name
-	ORDER BY name`
+	query := validationStatsQuery
 
 	rows, err := db.Query(query)
 	if err != nil {

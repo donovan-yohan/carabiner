@@ -18,14 +18,12 @@ type ValidationResult struct {
 	Error     error
 }
 
-// ExecuteValidations runs all configured validations and returns their results.
-// It generates a new run ID and marks any pending records from previous runs as orphaned.
 func ExecuteValidations(validations []enforce.ValidationConfig) ([]ValidationResult, string, error) {
 	runID := uuid.New().String()
 	results := make([]ValidationResult, 0, len(validations))
 
 	for _, v := range validations {
-		cmd := exec.Command("bash", "-c", v.Script)
+		cmd := exec.Command("sh", "-c", v.Script)
 		output, err := cmd.CombinedOutput()
 
 		result := ValidationResult{

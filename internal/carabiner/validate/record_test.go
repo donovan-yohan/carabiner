@@ -24,9 +24,7 @@ func TestInsertPending_InsertsWithCorrectStatus(t *testing.T) {
 		CreatedAt: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`INSERT INTO validation_events (id, run_id, name, script, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(insertPendingQuery)).WithArgs(
 		"evt-123", "run-456", "test-validation", "echo test", event.CreatedAt,
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -40,9 +38,7 @@ func TestRecordResult_UpdatesStatusAndResult(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'responded', result = ?, responded_at = ? WHERE name = ? AND run_id = ? AND status = 'pending'`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(updateResultQuery)).WithArgs(
 		ResultPass, sqlmock.AnyArg(), "test-validation", "run-456",
 	).WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -67,9 +63,7 @@ func TestRecordResult_WithDifferentResults(t *testing.T) {
 			require.NoError(t, err)
 			defer db.Close()
 
-			mock.ExpectExec(regexp.QuoteMeta(
-				`UPDATE validation_events SET status = 'responded', result = ?, responded_at = ? WHERE name = ? AND run_id = ? AND status = 'pending'`),
-			).WithArgs(
+			mock.ExpectExec(regexp.QuoteMeta(updateResultQuery)).WithArgs(
 				tt.result, sqlmock.AnyArg(), "validation-name", "run-123",
 			).WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -85,9 +79,7 @@ func TestRecordResult_ReturnsErrorWhenNoPendingRecord(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'responded', result = ?, responded_at = ? WHERE name = ? AND run_id = ? AND status = 'pending'`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(updateResultQuery)).WithArgs(
 		ResultPass, sqlmock.AnyArg(), "nonexistent-validation", "run-789",
 	).WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -102,9 +94,7 @@ func TestRecordResult_ReturnsErrorOnDBFailure(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'responded', result = ?, responded_at = ? WHERE name = ? AND run_id = ? AND status = 'pending'`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(updateResultQuery)).WithArgs(
 		ResultPass, sqlmock.AnyArg(), "test-validation", "run-456",
 	).WillReturnError(assert.AnError)
 
@@ -120,9 +110,7 @@ func TestMarkOrphaned_MarksPendingFromDifferentRunIDs(t *testing.T) {
 
 	currentRunID := "run-current"
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'orphaned', orphaned_at = ? WHERE status = 'pending' AND run_id != ?`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(markOrphanedQuery)).WithArgs(
 		sqlmock.AnyArg(), currentRunID,
 	).WillReturnResult(sqlmock.NewResult(0, 3))
 
@@ -138,9 +126,7 @@ func TestMarkOrphaned_DoesNotMarkCurrentRunID(t *testing.T) {
 
 	currentRunID := "run-abc-123"
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'orphaned', orphaned_at = ? WHERE status = 'pending' AND run_id != ?`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(markOrphanedQuery)).WithArgs(
 		sqlmock.AnyArg(), currentRunID,
 	).WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -158,9 +144,7 @@ func TestMarkOrphaned_ReturnsErrorOnDBFailure(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`UPDATE validation_events SET status = 'orphaned', orphaned_at = ? WHERE status = 'pending' AND run_id != ?`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(markOrphanedQuery)).WithArgs(
 		sqlmock.AnyArg(), "run-123",
 	).WillReturnError(assert.AnError)
 
@@ -182,9 +166,7 @@ func TestInsertPending_ReturnsErrorOnDBFailure(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(
-		`INSERT INTO validation_events (id, run_id, name, script, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`),
-	).WithArgs(
+	mock.ExpectExec(regexp.QuoteMeta(insertPendingQuery)).WithArgs(
 		event.ID, event.RunID, event.Name, event.Script, event.CreatedAt,
 	).WillReturnError(assert.AnError)
 

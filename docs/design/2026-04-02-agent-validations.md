@@ -130,5 +130,5 @@ internal/carabiner/
 - [x] Implement `validate/stats.go` — ValidationStats()
 - [x] Add `validate` command to CLI
 - [x] Add tests for validate package
-- [x] Add agent_validations to shared Svelte templates (README-impact validation)
+- [x] Add agent_validations to carabiner's own config (not templates — feature is documented, users opt-in via their own config)
 - [x] Document self-reporting limitation in docs/ (see line 107-109)

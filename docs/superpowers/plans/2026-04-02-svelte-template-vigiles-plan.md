@@ -734,13 +734,12 @@ Run \`carabiner quality check --files <files>\` before implementation to see rel
 }
 ```
 
-Note: The actual installation of vigiles (`npm install -D vigiles` and `npx skills add zernie/vigiles`) should be printed as instructions to the user, not executed by the Go code (since Go can't run npm commands reliably cross-platform). Add to the `InitWithTemplate` or `ApplyVigilesAddOn` function to return instructions:
+Note: Vigiles is installed via `npx skills add zernie/vigiles`. Print this as instructions to the user after scaffolding, not executed by Go code. Add to the `InitWithTemplate` or `ApplyVigilesAddOn` function to return instructions:
 
 ```go
 // Returns shell commands to run after scaffolding.
 func GetVigilesInstallCommands() []string {
     return []string{
-        "npm install -D vigiles",
         "npx skills add zernie/vigiles",
     }
 }
@@ -757,7 +756,6 @@ Write the functions above.
 After applying all add-ons, print:
 ```
 To complete setup, run:
-  npm install -D vigiles
   npx skills add zernie/vigiles
 ```
 
