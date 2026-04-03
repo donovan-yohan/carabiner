@@ -149,6 +149,13 @@ func metadataPayload() string {
 		"pid":  os.Getpid(),
 	}
 
+	// Add work context if available
+	if ctx, err := carabiner.GetWorkContext(); err == nil && ctx.WorkItemRef != "" {
+		meta["workItemRef"] = ctx.WorkItemRef
+		meta["specRef"] = ctx.SpecRef
+		meta["contextBranch"] = ctx.ContextBranch
+	}
+
 	data, err := json.Marshal(meta)
 	if err != nil {
 		return "{}"
