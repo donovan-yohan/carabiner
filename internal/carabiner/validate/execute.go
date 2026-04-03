@@ -5,14 +5,9 @@ import (
 	"os/exec"
 	"time"
 
+	"github.com/donovan-yohan/carabiner/internal/carabiner/enforce"
 	"github.com/google/uuid"
 )
-
-type ValidationConfig struct {
-	Name   string
-	Script string
-	Files  []string
-}
 
 type ValidationResult struct {
 	Name      string
@@ -25,7 +20,7 @@ type ValidationResult struct {
 
 // ExecuteValidations runs all configured validations and returns their results.
 // It generates a new run ID and marks any pending records from previous runs as orphaned.
-func ExecuteValidations(validations []ValidationConfig) ([]ValidationResult, string, error) {
+func ExecuteValidations(validations []enforce.ValidationConfig) ([]ValidationResult, string, error) {
 	runID := uuid.New().String()
 	results := make([]ValidationResult, 0, len(validations))
 

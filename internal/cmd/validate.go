@@ -40,8 +40,46 @@ var validateExecuteCmd = &cobra.Command{
 			return fmt.Errorf("loading enforce config: %w", err)
 		}
 
-		_ = enforceCfg
-		return fmt.Errorf("execute not yet wired to enforce config - use respond subcommand")
+		if len(enforceCfg.AgentValidations) == 0 {
+			fmt.Println("No agent validations configured.")
+			return nil
+		}
+
+		results, runID, err := validate.ExecuteValidations(enforceCfg.AgentValidations)
+		if err != nil {
+			return fmt.Errorf("executing validations: %w", err)
+		}
+
+		dbPath := filepath.Join(cfgDir, "carabiner.db")
+		db, err := events.InitDB(dbPath)
+		if err != nil {
+			return fmt.Errorf("initializing database: %w", err)
+		}
+		defer db.Close()
+
+		if err := validate.MarkOrphaned(db, runID); err != nil {
+			return fmt.Errorf("marking orphaned validations: %w", err)
+		}
+
+		for _, result := range results {
+			event := &validate.ValidationEvent{
+				ID:        result.Name + "-" + runID,
+				RunID:     runID,
+				Name:      result.Name,
+				Script:    result.Script,
+				CreatedAt: result.CreatedAt,
+			}
+			if err := validate.InsertPending(db, event); err != nil {
+				return fmt.Errorf("inserting pending validation: %w", err)
+			}
+
+			fmt.Printf("[VALIDATION] %s\n", result.Name)
+			fmt.Printf("%s\n", result.Question)
+			fmt.Printf("Run ID: %s\n\n", runID)
+		}
+
+		fmt.Printf("Run ID: %s\n", runID)
+		return nil
 	},
 }
 

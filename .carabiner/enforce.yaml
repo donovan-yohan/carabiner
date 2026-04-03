@@ -28,3 +28,8 @@ behavior:
   fail_on_warning: true
   stop_on_first_failure: false
   parallel: false
+
+agent_validations:
+  - name: README-impact
+    script: "echo 'Did you check if your changes affect any README sections?'"
+    files: ["README.md", "docs/**/*", "CLAUDE.md"]
