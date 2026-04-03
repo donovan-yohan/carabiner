@@ -40,7 +40,11 @@ behavior:
   "plugins": ["@typescript-eslint", "sonarjs"],
   "rules": {
     "no-unused-vars": "error",
-    "no-console": "warn"
+    "no-console": "warn",
+    "complexity": ["error", 20],
+    "max-depth": ["error", 4],
+    "max-params": ["error", 4],
+    "sonarjs/cognitive-complexity": ["error", 20]
   }
 }
 `

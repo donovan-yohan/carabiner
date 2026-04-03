@@ -36,11 +36,21 @@ behavior:
 	golangci := `linters:
   enable:
     - errcheck
+    - gocognit
+    - gocyclo
     - gosimple
     - govet
     - ineffassign
+    - nestif
     - staticcheck
     - unused
+linters-settings:
+  gocognit:
+    min-complexity: 15
+  gocyclo:
+    min-complexity: 10
+  nestif:
+    min-complexity: 4
 run:
   timeout: 5m
 `
