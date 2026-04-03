@@ -124,11 +124,11 @@ internal/carabiner/
 
 ## TODO
 
-- [ ] Add `validation_events` table to events DB schema
-- [ ] Implement `validate/execute.go` — ExecuteValidations()
-- [ ] Implement `validate/record.go` — RecordResult(), MarkOrphaned()
-- [ ] Implement `validate/stats.go` — ValidationStats()
-- [ ] Add `validate` command to CLI
-- [ ] Add tests for validate package
-- [ ] Add agent_validations to shared Svelte templates (README-impact validation)
-- [ ] Document self-reporting limitation in docs/
+- [x] Add `validation_events` table to events DB schema
+- [x] Implement `validate/execute.go` — ExecuteValidations()
+- [x] Implement `validate/record.go` — RecordResult(), MarkOrphaned()
+- [x] Implement `validate/stats.go` — ValidationStats()
+- [x] Add `validate` command to CLI
+- [x] Add tests for validate package
+- [x] Add agent_validations to carabiner's own config (not templates — feature is documented, users opt-in via their own config)
+- [x] Document self-reporting limitation in docs/ (see line 107-109)

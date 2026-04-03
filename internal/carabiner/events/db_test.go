@@ -169,3 +169,51 @@ func TestInitDB_Idempotent(t *testing.T) {
 		t.Errorf("Events table should still exist after second InitDB: %v", err)
 	}
 }
+
+func TestInitDB_CreatesValidationEventsTable(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "carabiner-events-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "test.db")
+
+	db, err := InitDB(dbPath)
+	if err != nil {
+		t.Fatalf("InitDB failed: %v", err)
+	}
+	defer db.Close()
+
+	var name string
+	err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='table' AND name='validation_events'").Scan(&name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			t.Errorf("validation_events table should exist")
+		} else {
+			t.Fatalf("Failed to query sqlite_master: %v", err)
+		}
+	}
+
+	if name != "validation_events" {
+		t.Errorf("Expected table name 'validation_events', got '%s'", name)
+	}
+
+	indexes := []string{
+		"idx_validation_run",
+		"idx_validation_name",
+		"idx_validation_status",
+	}
+
+	for _, idx := range indexes {
+		var idxName string
+		err = db.QueryRow("SELECT name FROM sqlite_master WHERE type='index' AND name=?", idx).Scan(&idxName)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				t.Errorf("Index %s should exist", idx)
+			} else {
+				t.Fatalf("Failed to query index %s: %v", idx, err)
+			}
+		}
+	}
+}

@@ -238,7 +238,7 @@ Or prompted after template selection:
 
 ### Setup Steps
 
-1. **Install:** `npm install -D vigiles`
+1. **Install:** `npx skills add zernie/vigiles`
 2. **Scripts:** Add `"vigiles": "vigiles"` to package.json
 3. **GitHub Action:** Create `.github/workflows/vigiles.yml`
 4. **Claude Code hook:** Create `.claude/settings.json` with PostToolUse hook (if `.claude/` detected)

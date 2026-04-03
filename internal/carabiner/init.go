@@ -197,7 +197,6 @@ func ApplyVigilesAddOn(cwd string) error {
 
 func GetVigilesInstallCommands() []string {
 	return []string{
-		"npm install -D vigiles",
 		"npx skills add zernie/vigiles",
 	}
 }
