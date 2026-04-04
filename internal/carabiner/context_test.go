@@ -45,8 +45,9 @@ func TestClearWorkContext(t *testing.T) {
 		t.Fatalf("SetWorkContext failed: %v", err)
 	}
 
-	if err := ClearWorkContext(); err != nil {
-		t.Fatalf("ClearWorkContext failed: %v", err)
+	result := ClearWorkContext()
+	if !result.ClearSucceeded {
+		t.Fatalf("ClearWorkContext failed to clear: %v", result.FailedKeys)
 	}
 
 	keys := []string{

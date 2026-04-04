@@ -50,7 +50,19 @@ func GetWorkContext() (WorkContext, error) {
 	return ctx, nil
 }
 
-func ClearWorkContext() error {
+// ClearResult holds the outcome of a ClearWorkContext operation.
+type ClearResult struct {
+	// FailedKeys lists keys that could not be unset. If non-empty, the context
+	// may still contain stale values for these keys.
+	FailedKeys []string
+	// ClearSucceeded is true only if all keys were successfully unset.
+	ClearSucceeded bool
+}
+
+// ClearWorkContext removes all carabiner context keys from git worktree config.
+// It continues even if individual keys fail to unset (e.g., already absent).
+// Callers should check the returned ClearResult to report partial failures.
+func ClearWorkContext() ClearResult {
 	keys := []string{
 		"carabiner.workItemRef",
 		"carabiner.specRef",
@@ -59,12 +71,16 @@ func ClearWorkContext() error {
 		"carabiner.contextSource",
 	}
 
+	result := ClearResult{ClearSucceeded: true}
 	for _, key := range keys {
 		cmd := exec.Command("git", "config", "--worktree", "--unset", key)
-		_ = cmd.Run()
+		if err := cmd.Run(); err != nil {
+			result.FailedKeys = append(result.FailedKeys, key)
+			result.ClearSucceeded = false
+		}
 	}
 
-	return nil
+	return result
 }
 
 func CurrentBranch() string {

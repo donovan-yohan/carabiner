@@ -54,7 +54,9 @@ var contextSetCmd = &cobra.Command{
 				Branch:      ctx.ContextBranch,
 				Source:      ctx.Source,
 			}
-			_ = events.AppendWorkContextEvent(db, event)
+			if err := events.AppendWorkContextEvent(db, event); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to record context event: %v\n", err)
+			}
 		}
 
 		return nil
@@ -108,9 +110,7 @@ var contextClearCmd = &cobra.Command{
 	Short: "Clear work context for current branch",
 	Long:  "Remove the work context from the current branch.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := carabiner.ClearWorkContext(); err != nil {
-			return fmt.Errorf("clearing work context: %w", err)
-		}
+		result := carabiner.ClearWorkContext()
 
 		if db != nil {
 			event := &events.WorkContextEvent{
@@ -121,7 +121,13 @@ var contextClearCmd = &cobra.Command{
 				Branch:      "",
 				Source:      "clear",
 			}
-			_ = events.AppendWorkContextEvent(db, event)
+			if err := events.AppendWorkContextEvent(db, event); err != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to record clear event: %v\n", err)
+			}
+		}
+
+		if !result.ClearSucceeded {
+			fmt.Fprintf(os.Stderr, "warning: failed to unset some keys: %v\n", result.FailedKeys)
 		}
 
 		fmt.Fprintln(os.Stdout, "Cleared work context for current branch.")

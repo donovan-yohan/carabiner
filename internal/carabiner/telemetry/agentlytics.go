@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/donovan-yohan/carabiner/internal/carabiner/events"
@@ -61,7 +62,10 @@ func ImportAgentlytics(db *sql.DB, opts AgentlyticsImportOptions) (int, error) {
 			continue
 		}
 
-		event := sessionToWorkflowEvent(session)
+		event, err := sessionToWorkflowEvent(session)
+		if err != nil {
+			return imported, fmt.Errorf("converting session to workflow event: %w", err)
+		}
 
 		if err := events.AppendWorkflowEvent(db, event); err != nil {
 			return imported, fmt.Errorf("inserting workflow event: %w", err)
@@ -92,12 +96,7 @@ func discoverTables(db *sql.DB) ([]string, error) {
 }
 
 func hasTable(tables []string, name string) bool {
-	for _, t := range tables {
-		if t == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(tables, name)
 }
 
 func discoverColumns(db *sql.DB, table string) ([]string, error) {
@@ -251,7 +250,7 @@ func workflowEventExists(db *sql.DB, sessionID string) (bool, error) {
 	return count > 0, nil
 }
 
-func sessionToWorkflowEvent(session Session) *events.WorkflowEvent {
+func sessionToWorkflowEvent(session Session) (*events.WorkflowEvent, error) {
 	metadata := make(map[string]interface{})
 	if len(session.Extra) > 0 {
 		metadata["agentlytics_fields"] = session.Extra
@@ -260,7 +259,10 @@ func sessionToWorkflowEvent(session Session) *events.WorkflowEvent {
 		metadata["message_count"] = session.MessageCount
 	}
 
-	metadataJSON, _ := json.Marshal(metadata)
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling metadata: %w", err)
+	}
 
 	return &events.WorkflowEvent{
 		ID:                fmt.Sprintf("agentlytics:%s", session.ID),
@@ -272,5 +274,5 @@ func sessionToWorkflowEvent(session Session) *events.WorkflowEvent {
 		Agent:             session.Editor,
 		Model:             session.Model,
 		Metadata:          string(metadataJSON),
-	}
+	}, nil
 }
