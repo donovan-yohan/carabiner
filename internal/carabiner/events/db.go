@@ -62,6 +62,49 @@ func InitDB(dbPath string) (*sql.DB, error) {
 	CREATE INDEX IF NOT EXISTS idx_validation_run ON validation_events(run_id);
 	CREATE INDEX IF NOT EXISTS idx_validation_name ON validation_events(name);
 	CREATE INDEX IF NOT EXISTS idx_validation_status ON validation_events(status);
+
+	CREATE TABLE IF NOT EXISTS work_context_events (
+		id TEXT PRIMARY KEY,
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		work_item_ref TEXT NOT NULL,
+		spec_ref TEXT,
+		branch TEXT NOT NULL,
+		source TEXT NOT NULL,
+		metadata TEXT
+	);
+
+	CREATE TABLE IF NOT EXISTS workflow_events (
+		id TEXT PRIMARY KEY,
+		timestamp DATETIME NOT NULL,
+		workflow TEXT NOT NULL,
+		event_type TEXT NOT NULL,
+		external_session_id TEXT,
+		external_run_id TEXT,
+		repo_path TEXT,
+		branch TEXT,
+		commit_sha TEXT,
+		agent TEXT,
+		model TEXT,
+		duration_ms INTEGER,
+		failure_category TEXT,
+		metadata TEXT
+	);
+
+	CREATE TABLE IF NOT EXISTS git_attributions (
+		commit_sha TEXT PRIMARY KEY,
+		work_item_ref TEXT NOT NULL,
+		spec_ref TEXT,
+		branch TEXT NOT NULL,
+		trailer_payload TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_workflow_timestamp ON workflow_events(timestamp DESC);
+	CREATE INDEX IF NOT EXISTS idx_workflow_workflow ON workflow_events(workflow);
+	CREATE INDEX IF NOT EXISTS idx_workflow_branch ON workflow_events(branch);
+	CREATE INDEX IF NOT EXISTS idx_workflow_session ON workflow_events(external_session_id);
+	CREATE INDEX IF NOT EXISTS idx_workflow_failure ON workflow_events(failure_category);
+	CREATE INDEX IF NOT EXISTS idx_context_timestamp ON work_context_events(timestamp DESC);
 	`
 
 	if _, err := db.Exec(createTableSQL); err != nil {

@@ -1,6 +1,7 @@
 package carabiner
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -204,4 +205,100 @@ func GetVigilesInstallCommands() []string {
 	return []string{
 		"npx skills add zernie/vigiles",
 	}
+}
+
+func ScaffoldContextSupport() error {
+	if err := scaffoldHooks(); err != nil {
+		return err
+	}
+	if err := scaffoldAgentInstructions(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func scaffoldHooks() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getting working directory: %w", err)
+	}
+
+	hooksDir := filepath.Join(cwd, ".git", "hooks")
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return fmt.Errorf("creating hooks directory: %w", err)
+	}
+
+	preCommitPath := filepath.Join(hooksDir, "pre-commit")
+	if _, err := os.Stat(preCommitPath); err == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", preCommitPath)
+	} else {
+		if err := os.WriteFile(preCommitPath, []byte(RenderPreCommitHook()), 0755); err != nil {
+			return fmt.Errorf("writing pre-commit hook: %w", err)
+		}
+	}
+
+	commitMsgPath := filepath.Join(hooksDir, "commit-msg")
+	if _, err := os.Stat(commitMsgPath); err == nil {
+		fmt.Fprintf(os.Stderr, "warning: %s already exists, skipping\n", commitMsgPath)
+	} else {
+		if err := os.WriteFile(commitMsgPath, []byte(RenderCommitMsgHook()), 0755); err != nil {
+			return fmt.Errorf("writing commit-msg hook: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func scaffoldAgentInstructions() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("getting working directory: %w", err)
+	}
+
+	contextInstructions := `## Carabiner Work Context
+
+Before meaningful work, set your context:
+- ` + "`carabiner context set --work-item <ref> [--spec <ref>]`" + `
+
+Before spawning subagents, pass ` + "`workItemRef`" + ` and ` + "`specRef`" + `.
+Do not commit without valid carabiner context for the current branch.
+
+Context is branch-scoped and validated on commit.
+`
+
+	claudePath := filepath.Join(cwd, "CLAUDE.md")
+	if _, err := os.Stat(claudePath); err == nil {
+		existing, err := os.ReadFile(claudePath)
+		if err != nil {
+			return fmt.Errorf("reading CLAUDE.md: %w", err)
+		}
+
+		if !bytes.Contains(existing, []byte("Carabiner Work Context")) {
+			updated := []byte(contextInstructions + "\n" + string(existing))
+			if err := os.WriteFile(claudePath, updated, 0644); err != nil {
+				return fmt.Errorf("updating CLAUDE.md: %w", err)
+			}
+		}
+	} else {
+		agentsPath := filepath.Join(cwd, "AGENTS.md")
+		if _, err := os.Stat(agentsPath); err == nil {
+			existing, err := os.ReadFile(agentsPath)
+			if err != nil {
+				return fmt.Errorf("reading AGENTS.md: %w", err)
+			}
+
+			if !bytes.Contains(existing, []byte("Carabiner Work Context")) {
+				updated := []byte(contextInstructions + "\n" + string(existing))
+				if err := os.WriteFile(agentsPath, updated, 0644); err != nil {
+					return fmt.Errorf("updating AGENTS.md: %w", err)
+				}
+			}
+		} else {
+			if err := os.WriteFile(agentsPath, []byte(contextInstructions), 0644); err != nil {
+				return fmt.Errorf("writing AGENTS.md: %w", err)
+			}
+		}
+	}
+
+	return nil
 }

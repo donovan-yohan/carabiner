@@ -12,6 +12,7 @@ import (
 var initMode string
 var initTemplate string
 var initAddOns []string
+var initContext bool
 
 var initCmd = &cobra.Command{
 	Use:   "init",
@@ -24,6 +25,14 @@ var initCmd = &cobra.Command{
 			}
 
 			fmt.Printf("Initialized carabiner with template '%s'\n", initTemplate)
+
+			if initContext {
+				if err := carabiner.ScaffoldContextSupport(); err != nil {
+					return err
+				}
+				fmt.Println("Scaffolded context support (hooks and agent instructions)")
+			}
+
 			return nil
 		}
 
@@ -39,6 +48,14 @@ var initCmd = &cobra.Command{
 		defer db.Close()
 
 		fmt.Printf("Initialized carabiner at %s\n", dir)
+
+		if initContext {
+			if err := carabiner.ScaffoldContextSupport(); err != nil {
+				return err
+			}
+			fmt.Println("Scaffolded context support (hooks and agent instructions)")
+		}
+
 		return nil
 	},
 }
@@ -47,5 +64,6 @@ func init() {
 	initCmd.Flags().StringVar(&initMode, "mode", "repo", "storage mode: 'repo' (committed) or 'local' (~/.carabiner/)")
 	initCmd.Flags().StringVar(&initTemplate, "template", "", "Template to scaffold (go, react-typescript)")
 	initCmd.Flags().StringSliceVar(&initAddOns, "add-ons", nil, "Add-ons to install (e.g., vigiles)")
+	initCmd.Flags().BoolVar(&initContext, "context", false, "Initialize with work context support (hooks and agent instructions)")
 	rootCmd.AddCommand(initCmd)
 }
