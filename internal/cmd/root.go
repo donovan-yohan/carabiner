@@ -25,8 +25,8 @@ var exitCode int
 
 var rootCmd = &cobra.Command{
 	Use:   "carabiner",
-	Short: "Agent-agnostic harness for coding agents",
-	Long:  "Carabiner is a repo's institutional memory for coding agents. It persists quality patterns across sessions and surfaces them when agents touch affected files.",
+	Short: "Forensic query layer for AI-coded repos",
+	Long:  "Carabiner joins git-ai attribution and agentlytics session data into a single forensic query: carabiner why <file>:<line>.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		startTime = time.Now()
 		exitCode = 0
@@ -147,13 +147,6 @@ func metadataPayload() string {
 		"os":   runtime.GOOS,
 		"arch": runtime.GOARCH,
 		"pid":  os.Getpid(),
-	}
-
-	// Add work context if available
-	if ctx, err := carabiner.GetWorkContext(); err == nil && ctx.WorkItemRef != "" {
-		meta["workItemRef"] = ctx.WorkItemRef
-		meta["specRef"] = ctx.SpecRef
-		meta["contextBranch"] = ctx.ContextBranch
 	}
 
 	data, err := json.Marshal(meta)

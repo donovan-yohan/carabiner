@@ -1,94 +1,88 @@
 # carabiner
 
-Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns learned from review failures) and **enforcement** (deterministic feed-forward checks).
+**git blame for intent, not just authorship.**
 
-Companion to [belayer](https://github.com/donovan-yohan/belayer) (orchestrator). You can use carabiner without belayer, and belayer without carabiner. They compose but don't depend on each other.
+Carabiner answers the question no other tool can: "A bug shipped last week. What agent session wrote this code, what model was it using, and what was the session doing?"
 
-## Why
+The data already exists. [git-ai](https://github.com/git-ai-project/git-ai) tracks which agent wrote which lines. [agentlytics](https://github.com/f/agentlytics) records full session transcripts. But nobody joins them. Carabiner is the join.
 
-Coding agents are ephemeral. Every session starts fresh. Claude doesn't remember that auth route changes need middleware registry updates. Codex doesn't know that your billing system stores absolute values and CREDIT rows must be subtracted.
-
-Carabiner is the repo's institutional memory for agents. It persists quality patterns across sessions and encodes domain knowledge that no amount of code reading reveals. Any agent that can run a shell command can use it.
-
-## Two Jobs
-
-### Enforcement (feed-forward, deterministic)
-
-Before work starts, carabiner ensures conditions exist. Static analysis tools (eslint, golangci-lint, tsc) must pass. No bypass.
+## How It Works
 
 ```bash
-carabiner enforce --all              # run all configured tools
-carabiner enforce --tool eslint     # run specific tool
+$ carabiner why src/auth/handler.go:47
+
+LINE: src/auth/handler.go:47 (introduced in commit abc1234)
+AUTHOR: Claude Code
+CONFIDENCE: high
+
+SESSION: claude_code session 655eb4a6-822f-4d52-8c06-cade4afdcd8d
+MODEL: claude-sonnet-4-5-20250514
+NAME: Implement token refresh flow
+SOURCE: claude-code
+PERIOD: 2026-03-28 14:32 to 2026-03-28 15:47
+
+ATTRIBUTION CHAIN:
+  [OK] line_to_commit: git blame (commit abc1234)
+  [OK] commit_to_session: git-ai note (session a1b2c3d4e5f6g7h8)
+  [OK] session_to_transcript: agentlytics match (session "Implement token refresh flow")
 ```
 
-Exit codes: 0=pass, 1=enforcement fail, 2=config error.
+One command. Zero config. Works with any AI coding agent.
 
-### Quality (reactive, learned from failures)
+## The Stack
 
-When an adversarial review gate catches a bug, carabiner records the pattern. Next time an agent touches those files, carabiner surfaces the relevant patterns. Every failed review makes future implementations better.
+Carabiner doesn't reinvent collection or attribution. It connects tools that already exist:
 
-```bash
-carabiner quality check --files src/auth/routes.ts    # what patterns apply here?
-carabiner quality record --gate-id <id>               # capture a learning from a gate failure
-```
+| Layer | Tool | What it does |
+|-------|------|--------------|
+| **Attribution** | [git-ai](https://github.com/git-ai-project/git-ai) | Line-level authorship via Git Notes. Which agent wrote which lines. |
+| **Collection** | [agentlytics](https://github.com/f/agentlytics) | Session data from all agents. Full transcripts, tool calls, timestamps. |
+| **Join** | **carabiner** | Connects attribution to session data. The forensic query layer. |
 
-### Knowledge (proactive, human-authored)
-
-Domain knowledge agents need but can't derive from code. Business logic semantics, architectural invariants, conventions that look arbitrary without context.
-
-```bash
-carabiner knowledge query --context "calculating total spend"   # what do I need to know?
-```
-
-**Status: aspirational.** Enforcement and Quality are MVP. Knowledge is the next horizon. See [docs/TODOS.md](docs/TODOS.md).
+The join key: git-ai stores `agent_id.id` (the raw conversation UUID) in each Git Note. agentlytics indexes sessions by the same conversation ID. Carabiner reads both and connects them.
 
 ## Quick Start
 
 ```bash
+# 1. Install the foundations
+curl -sSL https://usegitai.com/install.sh | bash   # git-ai: line attribution
+npx agentlytics                                      # agentlytics: session collection
+
+# 2. Install carabiner
 go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest
-cd your-repo
-carabiner init
-carabiner enforce --all   # verify your tools pass
+
+# 3. Check what data sources are available
+carabiner doctor
+
+# 4. Ask "why" about any line
+carabiner why src/auth/handler.go:47
 ```
 
-## For Agents
-
-Paste this into your session to install and initialize carabiner:
-
-```
-Install carabiner: run `go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest`
-Then initialize: `carabiner init --template <template> --add-ons vigiles`
-Templates: go | react-typescript
-Recommended: `carabiner init --template <your-framework> --add-ons vigiles`
-After init: run `carabiner enforce --all` before starting work
-```
-
-Non-interactive (pick one):
-```bash
-carabiner init --template go
-carabiner init --template react-typescript
-```
-
-## Event Log
-
-Every carabiner invocation is logged to SQLite for workflow observability.
+## CLI
 
 ```bash
-carabiner events list                  # recent invocations
-carabiner events list --limit 20      # with limit
-carabiner events list --command enforce  # filter by command
+carabiner why <file>:<line> [--rev <commit>] [--json]   # forensic dossier for a line
+carabiner doctor [--json]                                # detect available data sources
 ```
 
-## How It Works With Belayer
+## Confidence Model
 
-Belayer orchestrates pipelines (Intake → Implementation → Output). When a belayer gate node fails, the framework's failure handler calls `carabiner quality record`. When the implementation node starts, the framework script calls `carabiner quality check` and injects relevant patterns into the agent's prompt.
+Every hop in the attribution chain carries a confidence label: **high** (deterministic join via git-ai) or **missing** (no data for this hop). If any hop is missing, the overall confidence is missing. Carabiner never tells a clean story when the evidence is messy.
 
-Belayer doesn't know about quality patterns. Carabiner doesn't know about pipelines. The framework (e.g., `claude-codex-carabiner`) is the glue that composes both.
+| Hop | High | Missing |
+|-----|------|---------|
+| Line to commit | git blame (deterministic) | — |
+| Commit to session | git-ai note (hash join) | No note for commit |
+| Session to transcript | agentlytics match | Session not in cache |
 
 ## Philosophy
 
-See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the full reasoning behind carabiner's design: three-role separation (Agent/Harness/Orchestrator), H-as-feature for adversarial review, why quality patterns are not codebase documentation, and the false positive contamination problem.
+See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the reasoning behind carabiner's design: why the join is the product, why git-ai is required, why confidence is binary (high or missing), and why we compose with existing tools instead of competing.
+
+## Relationship to Belayer
+
+[Belayer](https://github.com/donovan-yohan/belayer) is the orchestrator (YAML pipelines, node execution, gate contracts). Carabiner is the forensic query layer. They serve different purposes and work independently. A belayer framework can call `carabiner why` to enrich gate failure reports with session context, but neither requires the other.
 
 ## Status
 
-Active development. Enforcement and Quality are MVP. Templates available for Go and React+TypeScript. Universal vigiles add-on for lint rule annotation validation.
+Active development. Join-layer MVP complete: `carabiner why` and `carabiner doctor` are working. See [docs/TODOS.md](docs/TODOS.md) for the roadmap.
