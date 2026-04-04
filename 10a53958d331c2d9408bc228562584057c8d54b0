@@ -1,0 +1,31 @@
+internal/carabiner/git/notes.go
+  b6a4f09f39fc7aa1 5,9-13
+SETUP.md
+  b6a4f09f39fc7aa1 21,24
+internal/cmd/why.go
+  b6a4f09f39fc7aa1 47-51,55
+internal/cmd/doctor.go
+  b6a4f09f39fc7aa1 25,48,77-84,87-88,103,106-110,112-114
+docs/design/2026-04-04-join-layer.md
+  b6a4f09f39fc7aa1 387
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "10a53958d331c2d9408bc228562584057c8d54b0",
+  "prompts": {
+    "b6a4f09f39fc7aa1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10c0348b-674f-45df-a828-31a0226a9489",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 37,
+      "total_deletions": 11,
+      "accepted_lines": 37,
+      "overriden_lines": 0
+    }
+  }
+}
