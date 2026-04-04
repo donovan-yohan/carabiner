@@ -1,6 +1,6 @@
 # carabiner
 
-Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from review failures) and **enforcement** (deterministic feed-forward checks). CLI-first, any agent that can run `sh -c` can use it.
+Forensic query layer for AI-coded repos. Joins git-ai (line attribution), agentlytics (session data), and work-item systems (Linear/Jira/GitHub) into a single query: `carabiner why <file>:<line>`. CLI-first, any agent that can run `sh -c` can use it.
 
 ## Quick Reference
 
@@ -9,32 +9,31 @@ Agent-agnostic harness for coding agents. Two jobs: **quality** (patterns from r
 | Build | `go build -o carabiner ./cmd/carabiner` |
 | Test | `go test ./...` |
 | Run | `./carabiner` |
-| Init | `carabiner init` |
-| Enforce | `carabiner enforce --all` |
-| Events | `carabiner events list` |
+| Why | `carabiner why <file>:<line>` |
+| Doctor | `carabiner doctor` |
 
 ## Documentation Map
 
 | Category | Path | When to look here |
 |----------|------|-------------------|
-| Philosophy | `docs/PHILOSOPHY.md` | Three roles, H-as-feature, why CLI not plugin, false positive contamination |
+| Philosophy | `docs/PHILOSOPHY.md` | Join-layer thesis, confidence model, compose-don't-compete, retroactive attribution |
 | TODOs | `docs/TODOS.md` | MVP scope, post-MVP features, knowledge layer design questions, backlog |
 | Origin | `docs/ORIGIN.md` | How carabiner emerged from the Slate analysis session, key references |
-| Design | `docs/design/2026-04-02-feed-forward-enforcement.md` | Enforce and events layer design |
+| Design (current) | `~/.gstack/projects/donovan-yohan-carabiner/donovanyohan-master-design-20260404-133209.md` | Join-layer architecture, proof-of-join gate, git-ai + agentlytics integration |
+| Design (superseded) | `docs/design/2026-04-02-feed-forward-enforcement.md` | Old enforce layer design (superseded by join-layer pivot) |
 
 ## Key Patterns
 
-- **Enforcement**: `.carabiner/enforce.yaml` defines tools (golangci-lint, gofmt, etc.). Sequential execution with 3-state exit codes: 0=pass, 1=enforcement fail, 2=config error.
-- **Templates**: `.carabiner/templates/` has enforce.yaml for Go and React+TypeScript. Generate strict tool configs.
-- **Event log**: SQLite at `.carabiner/carabiner.db`. Auto-logs every carabiner invocation.
-- **Quality patterns**: YAML files in `.carabiner/quality/learnings/`. Path-prefix matching for retrieval. Append-only signals for concurrent safety.
+- **Join layer**: Carabiner reads git-ai Git Notes, agentlytics cache.db, and git history. It doesn't collect data or write attribution. It connects them.
+- **Confidence per hop**: Every step in the attribution chain (line->commit, commit->session, session->transcript, commit->work item) carries a confidence label (high/medium/low/missing). Honest ambiguity over false certainty.
+- **Graceful degradation**: Works with whatever data sources exist. git-ai installed = high confidence. No git-ai = timestamp + file Jaccard fallback. No agentlytics = partial (notes only).
 - **CLI-first**: the binary IS the interface. Lightweight agent plugins are convenience wrappers that call the CLI.
-- **Separate from belayer**: carabiner is the harness, belayer is the orchestrator. Frameworks (shipped with belayer) compose both. Either works alone.
-- **No evaluator self-evolution yet**: gate failures are not ground truth. Need bug-traced-to-run external signal before enabling auto-evolution of quality standards.
+- **Compose, don't compete**: git-ai handles attribution. agentlytics handles collection. Carabiner handles the join. Each tool is independently maintained.
+- **Separate from belayer**: carabiner is the forensic layer, belayer is the orchestrator. Either works alone.
 
 ## Relationship to Belayer
 
-Belayer (separate repo: github.com/donovan-yohan/belayer) orchestrates YAML pipelines. Carabiner provides quality/knowledge. Frameworks shipped with belayer (e.g., claude-codex-carabiner) call both CLIs. The gate contract is belayer's concern. What happens on failure (calling `carabiner quality record`) is the framework's decision.
+Belayer (separate repo: github.com/donovan-yohan/belayer) orchestrates YAML pipelines. Carabiner provides forensic context. A belayer framework can call `carabiner why` to enrich gate failure reports with session context, but neither requires the other.
 
 ## Skill routing
 
