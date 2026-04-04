@@ -384,7 +384,7 @@ The prior design (donovanyohan-master-design-20260404-080000.md) proposed removi
 - Carabiner ships as a Go binary via GitHub Releases (existing pipeline)
 - No deployment changes — purely local tool
 - git-ai and agentlytics are recommended dependencies, not hard requirements
-- Document the installation trio: `git-ai init && agentlytics scan && carabiner doctor`
+- Document the installation trio: `git-ai install-hooks && agentlytics scan && carabiner doctor`
 
 ## Next Steps
 

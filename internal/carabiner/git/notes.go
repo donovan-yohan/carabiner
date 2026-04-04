@@ -2,8 +2,15 @@ package git
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 )
+
+// IsGitAIInstalled checks whether the git-ai binary is on PATH.
+func IsGitAIInstalled() bool {
+	_, err := exec.LookPath("git-ai")
+	return err == nil
+}
 
 // ShowNote reads a git note from the given ref for the given commit.
 // Returns the raw note text, or an error if no note exists.

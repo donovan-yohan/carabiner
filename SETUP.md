@@ -18,10 +18,10 @@ git-ai provides line-level AI attribution via Git Notes. Carabiner needs this to
 
 ```bash
 curl -sSL https://usegitai.com/install.sh | bash
-git-ai init
+git-ai install-hooks
 ```
 
-After `git-ai init`, future commits made with AI agents will automatically get attribution notes. Existing commits won't have notes (git-ai only tracks going forward).
+After `git-ai install-hooks`, future commits made with AI agents will automatically get attribution notes. Existing commits won't have notes (git-ai only tracks going forward).
 
 ### 2. agentlytics (recommended)
 

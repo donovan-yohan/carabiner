@@ -22,6 +22,7 @@ type DoctorReport struct {
 
 // GitAIStatus reports git-ai availability.
 type GitAIStatus struct {
+	Installed      bool `json:"installed"`
 	NotesRefExists bool `json:"notes_ref_exists"`
 }
 
@@ -44,6 +45,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	report.GitRepo = git.IsInsideWorkTree()
 
 	// Check git-ai
+	report.GitAI.Installed = git.IsGitAIInstalled()
 	if report.GitRepo {
 		report.GitAI.NotesRefExists = git.HasNotesRef("ai")
 	}
@@ -72,10 +74,18 @@ func printDoctorText(r *DoctorReport) error {
 	printCheck("Git repository", r.GitRepo, "", `Not inside a git repository.
 Run this command from within a git repo.`)
 
-	printCheck("git-ai notes (refs/notes/ai)", r.GitAI.NotesRefExists, "", `No git-ai notes found in this repo.
+	switch {
+	case r.GitAI.NotesRefExists:
+		printCheck("git-ai notes (refs/notes/ai)", true, "", "")
+	case r.GitAI.Installed:
+		printCheck("git-ai notes (refs/notes/ai)", false, "", `git-ai is installed but no notes exist in this repo yet.
+Notes will appear after your next AI-assisted commit.`)
+	default:
+		printCheck("git-ai notes (refs/notes/ai)", false, "", `No git-ai notes found in this repo.
 git-ai tracks which AI agent wrote each line of code.
 Install: https://github.com/git-ai-project/git-ai
-Then run: git-ai init`)
+Then run: git-ai install-hooks`)
+	}
 
 	agentlyticsOK := r.Agentlytics.Found && r.Agentlytics.SchemaValid
 	detail := ""
@@ -90,14 +100,18 @@ Then run: npx agentlytics`, r.Agentlytics.Path))
 	fmt.Println()
 	if r.Ready {
 		fmt.Println("Ready. Run: carabiner why <file>:<line>")
-	} else {
-		fmt.Println("Not ready. Install missing data sources above.")
+		return nil
 	}
 
-	if !r.Ready {
-		return fmt.Errorf("not ready: install missing data sources above")
+	// Distinguish "almost ready" (git-ai installed, just no notes yet) from "not ready"
+	agentlyticsOK2 := r.Agentlytics.Found && r.Agentlytics.SchemaValid
+	if r.GitRepo && r.GitAI.Installed && !r.GitAI.NotesRefExists && agentlyticsOK2 {
+		fmt.Println("Almost ready. git-ai is installed — make an AI-assisted commit to start tracking.")
+		return fmt.Errorf("almost ready: no git-ai notes yet")
 	}
-	return nil
+
+	fmt.Println("Not ready. Install missing data sources above.")
+	return fmt.Errorf("not ready: install missing data sources above")
 }
 
 func printCheck(name string, ok bool, detail string, fixMsg string) {

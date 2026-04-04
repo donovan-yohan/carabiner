@@ -44,10 +44,15 @@ func runWhy(cmd *cobra.Command, args []string) error {
 
 	// Fail-fast: git-ai notes must exist
 	if !git.HasNotesRef("ai") {
+		if git.IsGitAIInstalled() {
+			return fmt.Errorf(`no git-ai notes found in this repo yet.
+git-ai is installed — notes will appear after your next AI-assisted commit.
+Run: carabiner doctor`)
+		}
 		return fmt.Errorf(`no git-ai notes found in this repo.
 git-ai tracks which AI agent wrote each line of code.
 Install: https://github.com/git-ai-project/git-ai
-Then run: git-ai init`)
+Then run: git-ai install-hooks`)
 	}
 
 	// Find agentlytics cache (optional enrichment)
