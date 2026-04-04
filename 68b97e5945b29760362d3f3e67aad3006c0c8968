@@ -1,0 +1,33 @@
+internal/cmd/root.go
+  e382aab83ab23e46 29
+CLAUDE.md
+  e382aab83ab23e46 24
+internal/cmd/doctor.go
+  e382aab83ab23e46 55-56,88,98
+internal/cmd/why.go
+  e382aab83ab23e46 47,59
+internal/carabiner/dossier/builder.go
+  e382aab83ab23e46 178
+internal/carabiner/git/blame.go
+  e382aab83ab23e46 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "68b97e5945b29760362d3f3e67aad3006c0c8968",
+  "prompts": {
+    "e382aab83ab23e46": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fc3e0909-817e-4783-85fd-9aad0ef49fff",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Donovan Yohan",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 10,
+      "accepted_lines": 10,
+      "overriden_lines": 0
+    }
+  }
+}
