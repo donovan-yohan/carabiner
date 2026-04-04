@@ -175,6 +175,7 @@ func shortSHA(sha string) string {
 // normalizePath cleans up a file path for comparison against git-ai attestations.
 func normalizePath(file string) string {
 	file = filepath.Clean(file)
+	file = filepath.ToSlash(file)
 	file = strings.TrimPrefix(file, "./")
 	return file
 }

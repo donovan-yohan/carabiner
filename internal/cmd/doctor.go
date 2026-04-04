@@ -52,8 +52,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	agentlyticsPath := agentlytics.DefaultCachePath()
 	report.Agentlytics = agentlytics.CheckHealth(agentlyticsPath)
 
-	// Ready = all required sources present
-	report.Ready = report.GitRepo && report.GitAI.NotesRefExists && report.Agentlytics.Found
+	// Ready = all required sources present (agentlytics must also have valid schema)
+	report.Ready = report.GitRepo && report.GitAI.NotesRefExists && report.Agentlytics.Found && report.Agentlytics.SchemaValid
 
 	if doctorJSON {
 		enc := json.NewEncoder(os.Stdout)
@@ -85,7 +85,7 @@ Then run: git-ai init`)
 	printCheck("agentlytics cache", agentlyticsOK, detail, fmt.Sprintf(`agentlytics cache not found at %s
 agentlytics records AI session data from all agents.
 Install: https://github.com/f/agentlytics
-Then run: agentlytics scan`, r.Agentlytics.Path))
+Then run: npx agentlytics`, r.Agentlytics.Path))
 
 	fmt.Println()
 	if r.Ready {
@@ -95,7 +95,7 @@ Then run: agentlytics scan`, r.Agentlytics.Path))
 	}
 
 	if !r.Ready {
-		os.Exit(1)
+		return fmt.Errorf("not ready: install missing data sources above")
 	}
 	return nil
 }

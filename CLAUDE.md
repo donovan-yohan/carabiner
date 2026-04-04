@@ -21,7 +21,7 @@ Forensic query layer for AI-coded repos. Joins git-ai (line attribution), agentl
 | Origin | `docs/ORIGIN.md` | How carabiner emerged from the Slate analysis session, key references |
 | Setup | `SETUP.md` | Prerequisites (git-ai, agentlytics), installation, usage guide |
 | Changelog | `CHANGELOG.md` | Release history |
-| Design (current) | `~/.gstack/projects/donovan-yohan-carabiner/donovanyohan-master-design-20260404-133209.md` | Join-layer architecture, proof-of-join gate, git-ai + agentlytics integration |
+| Design (current) | `docs/design/2026-04-04-join-layer.md` | Join-layer architecture, proof-of-join gate, git-ai + agentlytics integration |
 | Design (superseded) | `docs/design/2026-04-02-feed-forward-enforcement.md` | Old enforce layer design (superseded by join-layer pivot) |
 
 ## Key Patterns

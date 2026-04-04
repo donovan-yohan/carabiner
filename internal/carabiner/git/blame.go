@@ -12,7 +12,7 @@ import (
 var porcelainLineRe = regexp.MustCompile(`^([0-9a-f]{40})\s`)
 
 // Blame runs git blame for a single line and returns the result.
-// If rev is empty, HEAD is used. Uses -C to detect copies/moves.
+// If rev is empty, blame is computed against the working tree, including uncommitted changes. Uses -C to detect copies/moves.
 func Blame(file string, line int, rev string) (*carabiner.BlameResult, error) {
 	lineRange := fmt.Sprintf("%d,%d", line, line)
 	args := []string{"blame", "--porcelain", "-C", "-L", lineRange}

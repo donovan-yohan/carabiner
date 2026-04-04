@@ -26,7 +26,7 @@ var exitCode int
 var rootCmd = &cobra.Command{
 	Use:   "carabiner",
 	Short: "Forensic query layer for AI-coded repos",
-	Long:  "Carabiner joins git-ai attribution, agentlytics session data, and work-item references into a single forensic query: carabiner why <file>:<line>.",
+	Long:  "Carabiner joins git-ai attribution and agentlytics session data into a single forensic query: carabiner why <file>:<line>.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		startTime = time.Now()
 		exitCode = 0

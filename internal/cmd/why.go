@@ -44,11 +44,10 @@ func runWhy(cmd *cobra.Command, args []string) error {
 
 	// Fail-fast: git-ai notes must exist
 	if !git.HasNotesRef("ai") {
-		fmt.Fprintln(os.Stderr, `No git-ai notes found in this repo.
+		return fmt.Errorf(`no git-ai notes found in this repo.
 git-ai tracks which AI agent wrote each line of code.
 Install: https://github.com/git-ai-project/git-ai
 Then run: git-ai init`)
-		os.Exit(1)
 	}
 
 	// Find agentlytics cache (optional enrichment)
@@ -57,7 +56,7 @@ Then run: git-ai init`)
 		fmt.Fprintln(os.Stderr, `Warning: agentlytics cache not found at `+agentlyticsPath+`
 agentlytics records AI session data from all agents.
 Install: https://github.com/f/agentlytics
-Then run: agentlytics scan
+Then run: npx agentlytics
 Continuing with git-ai data only.
 `)
 		agentlyticsPath = ""
