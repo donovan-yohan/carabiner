@@ -42,36 +42,44 @@ Because agentlytics already does it well. Reads session stores from every major 
 
 ### What We Build Instead
 
-The cross-system query that nobody else provides. The deterministic join key (`git-ai.agent_id.id` = `agentlytics.conversation_id`) turns "AI archaeology" from fuzzy timestamp correlation into a foreign key join. Everything else is enrichment on top of that spine.
+The cross-system query that nobody else provides. The deterministic join key (`git-ai.agent_id.id` = `agentlytics.chats.id`) turns "AI archaeology" from fuzzy timestamp correlation into a foreign key join. Everything else is enrichment on top of that spine.
 
 ---
 
-## Confidence Is Core Product
+## Confidence Model
 
-A bug is rarely traceable to a single clean cause. One session wrote the code, another edited it, a human reviewed it, the spec drifted, and the work-item link might be weak or missing.
+Carabiner uses a binary confidence model: **high** or **missing**.
 
-If carabiner tells a clean story when the evidence is messy, users stop trusting it. Every hop in the attribution chain carries a confidence label:
+- **High**: deterministic join. git-ai note exists for the commit, the line falls within an attested range, and the session hash maps to metadata with a conversation ID.
+- **Missing**: no data for this hop. The commit predates git-ai installation, the line isn't in any attested range, or the session isn't in the agentlytics cache.
 
-- **High**: deterministic join (git-ai hash match, agentlytics conversation_id match)
-- **Medium**: heuristic correlation (timestamp + file overlap Jaccard > 0.3)
-- **Low**: weak signal (timestamp window only, branch name pattern only)
-- **Missing**: no data for this hop
+The dossier shows every hop in the attribution chain with its confidence. If any hop is missing, the overall confidence is missing. Honest ambiguity builds trust. False certainty destroys it.
 
-The dossier shows the weakest link. The confidence model isn't UI garnish, it's the core product. Honest ambiguity builds trust. False certainty destroys it.
+### Why No Medium or Low Tiers
+
+The original design included "medium" (timestamp + file Jaccard correlation) and "low" (timestamp window only). These were dropped because:
+
+1. **False attribution risk.** In a shared repo with multiple agents, timestamp correlation can attribute code to the wrong session. False attribution is worse than no attribution.
+2. **Simplicity.** Two tiers (high/missing) are easier to reason about than four. Either the deterministic join works or it doesn't.
+3. **Forcing function.** Making git-ai a hard requirement pushes adoption of the tool that makes attribution deterministic, rather than building increasingly clever workarounds for its absence.
 
 ---
 
-## Graceful Degradation
+## git-ai Is Required
 
-Carabiner works with whatever data sources are available. git-ai and agentlytics are recommended, not required.
+git-ai is a hard requirement for `carabiner why`. Without git-ai notes, there's nothing to join. The install instructions tell you to set up git-ai first.
 
-- git-ai installed: commit-to-session join is deterministic (high confidence)
-- No git-ai: fall back to timestamp + file Jaccard correlation (medium confidence)
-- agentlytics available: full session transcripts and tool call history
-- No agentlytics: git-ai notes only, no session context
-- Neither: carabiner has nothing to join
+This is a deliberate choice. Rather than building fallback correlation that might produce wrong answers, carabiner requires the data source that produces right answers. If git-ai proves to be a friction point for adoption, we'll revisit (possibly building our own lightweight attribution), but the MVP prioritizes correctness over convenience.
 
-This means carabiner is useful the moment you install it in a repo that has git-ai notes, even before agentlytics is set up. And it gets richer as you add more data sources.
+---
+
+## Work-Item Linkage Is Workflow
+
+Connecting code to work items (Linear tickets, Jira issues, GitHub issues) is valuable but fragile to automate. Branch name parsing (`feature/ENG-42`) depends on naming conventions. Commit message grepping depends on discipline. PR metadata varies by platform.
+
+Instead of building brittle heuristics, carabiner recommends a workflow: use your platform's existing PR-to-ticket integration (Linear's GitHub integration, Jira's smart commits, etc.). The link from commit to work item flows through the platform, not through carabiner parsing heuristics.
+
+The chain becomes: line → commit → PR → work item → spec. Each hop is handled by the tool that owns it. Carabiner handles line → commit → session. The platform handles commit → PR → work item.
 
 ---
 
@@ -84,7 +92,7 @@ Carabiner's position in the ecosystem:
 | Line-level attribution | git-ai | Reads git-ai's Git Notes. Does not write them. |
 | Session data collection | agentlytics | Reads agentlytics' SQLite cache. Does not collect. |
 | Token usage / cost | tokscale | Orthogonal. Could read tokscale data in future. |
-| Work-item tracking | Linear, Jira, GitHub | Reads PR/issue links. Does not manage work items. |
+| Work-item tracking | Linear, Jira, GitHub | Workflow recommendation. Does not parse. |
 | Pipeline orchestration | belayer | Independent. Belayer can call carabiner, but doesn't need to. |
 
 This is a deliberate choice. Every tool carabiner composes with is independently maintained, has its own community, and solves its problem well. Carabiner adds value by connecting them, not by replacing them.
@@ -93,13 +101,11 @@ This is a deliberate choice. Every tool carabiner composes with is independently
 
 ## Retroactive Over Explicit
 
-Most attribution tools require agents to explicitly participate in the attribution protocol. git-ai requires `git-ai checkpoint`. The prior carabiner design required `carabiner context set`. GitHub Copilot's tracing only works for Copilot.
+Most attribution tools require agents to explicitly participate in the attribution protocol. git-ai requires `git-ai checkpoint`. GitHub Copilot's tracing only works for Copilot.
 
 Carabiner's insight: session-level retroactive attribution from already-existing data is sufficient for the forensic use case ("what was the agent doing when this bug got written?"), and it's the only approach that works without agent cooperation.
 
-When git-ai is installed, attribution is deterministic and requires no extra agent cooperation (git-ai's hooks handle it automatically). When git-ai is absent, carabiner falls back to timestamp + file overlap correlation. Less precise, but never fails silently and never requires the developer to remember to set context.
-
-You trade line-level precision for zero-config reliability. For the forensic debugging use case, session-level attribution ("this session produced code in this commit") is the right granularity.
+When git-ai is installed, attribution is deterministic and requires no extra agent cooperation (git-ai's hooks handle it automatically). You trade line-level precision for zero-config reliability. For the forensic debugging use case, session-level attribution ("this session produced code in this commit") is the right granularity.
 
 ---
 
@@ -107,7 +113,7 @@ You trade line-level precision for zero-config reliability. For the forensic deb
 
 **System-level** (`~/.carabiner/` or equivalent): reads agentlytics' session cache, which spans all repos on the machine. This gives carabiner access to session data regardless of which repo the agent was working in.
 
-**Repo-level** (`.carabiner/`): reads git-ai notes and git history for this specific repo. This is where work-item linkage happens, because branch names, commit messages, and PR metadata are repo-scoped.
+**Repo-level** (`.carabiner/`): reads git-ai notes and git history for this specific repo. This is where the blame-to-session join happens, because git notes are repo-scoped.
 
 Both scopes feed the same query interface. `carabiner why` works regardless of which data sources are available, reporting what it found and what's missing.
 
@@ -141,8 +147,6 @@ Carabiner doesn't prescribe how agents work. It doesn't tell the agent to "first
 
 Carabiner provides one thing: forensic context. "Here's what happened when this code was written." What the agent or developer does with that information is their business.
 
-The previous harness plugin had 12+ commands prescribing a rigid workflow (brainstorm, plan, orchestrate, validate, review, reflect, complete, prune). This fought the natural evolution of models getting better at self-planning and self-reviewing. Carabiner is a forensic layer, not a workflow engine.
-
 ---
 
 ## The False Positive Contamination Problem
@@ -169,6 +173,6 @@ A different framework could skip carabiner entirely. A user could use carabiner 
 
 ## Concurrent Safety
 
-Carabiner's query layer is read-only against external data sources (git-ai notes, agentlytics cache, git history). Multiple carabiner queries can run simultaneously without conflicts. The index (Approach B, when built) uses SQLite WAL mode for concurrent read access.
+Carabiner's query layer is read-only against external data sources (git-ai notes, agentlytics cache, git history). Multiple carabiner queries can run simultaneously without conflicts.
 
-Git-ai handles concurrent write safety for attribution notes. Agentlytics handles concurrent write safety for session data. Carabiner inherits their guarantees by reading, not writing.
+agentlytics cache.db is opened in read-only mode with a busy timeout to handle concurrent access safely. Git-ai handles concurrent write safety for attribution notes. Carabiner inherits their guarantees by reading, not writing.

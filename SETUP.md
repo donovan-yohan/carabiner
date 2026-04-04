@@ -2,133 +2,110 @@
 
 ## What is Carabiner?
 
-Carabiner is an agent-agnostic harness for coding agents. It provides two critical functions:
+Carabiner is a forensic query layer for AI-coded repos. It answers: "What agent session wrote this code, what model was it using, and what was the session doing?"
 
-1. **Quality**: Persists patterns learned from review failures across sessions
-2. **Enforcement**: Runs deterministic feed-forward checks before work starts
+It works by joining two existing tools:
+- **git-ai**: tracks which agent wrote which lines (Git Notes at `refs/notes/ai`)
+- **agentlytics**: records session data from all AI agents (SQLite cache)
 
-Every coding agent session starts fresh. Claude doesn't remember that auth route changes need middleware registry updates. Codex doesn't know that your billing system stores absolute values and CREDIT rows must be subtracted.
+Carabiner reads both and connects them. One command, zero config.
 
-Carabiner is the repo's institutional memory for agents. It persists quality patterns across sessions and encodes domain knowledge that no amount of code reading reveals.
+## Prerequisites
 
-## Setting Up Context
+### 1. git-ai (required)
 
-Before starting meaningful work, set your work context:
-
-```bash
-carabiner context set --work-item <ref> [--spec <ref>]
-```
-
-This context is branch-scoped and validated on every commit. The context includes:
-
-- **Work Item Reference**: The issue, ticket, or task being worked on
-- **Spec Reference** (optional): The specification or design document
-- **Context Branch**: The git branch for this work
-
-### Context Commands
+git-ai provides line-level AI attribution via Git Notes. Carabiner needs this to know which agent session wrote which code.
 
 ```bash
-# Set context for current branch
-carabiner context set --work-item ISSUE-123 --spec docs/design.md
-
-# Show current context
-carabiner context show
-
-# Show context in JSON format
-carabiner context show --json
-
-# Clear context for current branch
-carabiner context clear
+curl -sSL https://usegitai.com/install.sh | bash
+git-ai init
 ```
 
-## How Hooks Work
+After `git-ai init`, future commits made with AI agents will automatically get attribution notes. Existing commits won't have notes (git-ai only tracks going forward).
 
-Carabiner installs two git hooks during `init`:
+### 2. agentlytics (recommended)
 
-### Pre-Commit Hook
-
-Validates that a work context exists before allowing commits:
+agentlytics records session metadata (name, timestamps, source) from all major AI agents into a local SQLite cache.
 
 ```bash
-#!/bin/sh
-carabiner context show >/dev/null 2>&1
-if [ $? -ne 0 ]; then
-  echo "carabiner: no valid work context for current branch"
-  echo "Run: carabiner context set --work-item <ref> [--spec <ref>]"
-  exit 1
-fi
+npx agentlytics
 ```
 
-If no valid context exists, the commit is blocked with instructions to set context.
+This scans your agent session stores and builds `~/.agentlytics/cache.db`. Run it periodically to keep the cache current.
 
-### Commit-Msg Hook
-
-Appends carabiner trailers to commit messages:
-
-```
-Carabiner-Work-Item: ISSUE-123
-Carabiner-Spec: docs/design.md
-Carabiner-Context-Branch: feature/auth
-```
-
-These trailers create an audit trail linking commits to work items and specs.
-
-## Initializing Carabiner in a New Repo
+## Installing Carabiner
 
 ```bash
-# Install carabiner
 go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest
-
-# Initialize with template
-carabiner init --template go
-# or
-carabiner init --template react-typescript
-
-# Verify enforcement passes
-carabiner enforce --all
 ```
 
-### Templates
-
-- `go`: Go project with golangci-lint, gofmt, go vet
-- `react-typescript`: React + TypeScript project with eslint, tsc, prettier
-
-### Add-Ons
-
-- `vigiles`: Validates agent instruction files (CLAUDE.md, AGENTS.md)
+## Verify Your Setup
 
 ```bash
-carabiner init --template go --add-ons vigiles
+carabiner doctor
 ```
 
-## Agent Onboarding Prompt
-
-Paste this into your agent session to install and initialize carabiner:
+Doctor checks all three data sources and tells you what's available:
 
 ```
-Install carabiner: run `go install github.com/donovan-yohan/carabiner/cmd/carabiner@latest`
-Then initialize: `carabiner init --template <template> --add-ons vigiles`
-Templates: go | react-typescript
-Recommended: `carabiner init --template <your-framework> --add-ons vigiles`
-After init: run `carabiner enforce --all` before starting work
+carabiner doctor
+================
+
+  [OK] Git repository
+  [OK] git-ai notes (refs/notes/ai)
+  [OK] agentlytics cache (7325 sessions indexed)
+
+Ready. Run: carabiner why <file>:<line>
 ```
 
-## Before Committing
+If anything is missing, doctor gives you the install command.
 
-Always run:
+## Using Carabiner
+
+### Forensic query
 
 ```bash
-carabiner enforce --all
+carabiner why src/auth/handler.go:47
 ```
 
-This verifies that all configured static analysis tools pass before committing.
+This traces line 47 back through:
+1. `git blame` to find which commit introduced it
+2. git-ai notes to find which agent session wrote it
+3. agentlytics to enrich with session name, model, timestamps
 
-## Quality Patterns
-
-Before implementation, check for relevant learnings:
+### JSON output
 
 ```bash
-carabiner quality check --files <files>
+carabiner why src/auth/handler.go:47 --json
+carabiner doctor --json
 ```
 
-This surfaces patterns from past gate failures that apply to the files you're about to modify.
+Both commands support `--json` for structured output. Useful for scripts, CI, and agents calling carabiner programmatically.
+
+### Historical queries
+
+```bash
+carabiner why src/auth/handler.go:47 --rev abc1234
+```
+
+Blame against a specific commit instead of the working tree.
+
+## Work-Item Linkage (Workflow Recommendation)
+
+Carabiner doesn't parse branch names or grep commit messages for ticket numbers. Instead, use your platform's existing integration:
+
+- **Linear**: Enable the GitHub integration. PRs linked to Linear issues automatically.
+- **Jira**: Use smart commits or the GitHub/GitLab integration.
+- **GitHub Issues**: Reference issues in PR descriptions.
+
+The chain becomes: line (carabiner) → commit → PR → ticket → spec. Each hop is handled by the tool that owns it.
+
+## For Agents
+
+Any agent that can run `sh -c` can use carabiner:
+
+```
+Run `carabiner doctor` to check data source availability.
+Run `carabiner why <file>:<line>` to trace a line back to its agent session.
+Use --json for structured output.
+```

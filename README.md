@@ -2,9 +2,9 @@
 
 **git blame for intent, not just authorship.**
 
-Carabiner answers the question no other tool can: "A bug shipped last week. What agent session wrote this code, what was it thinking, what spec was it working from, and was the spec even clear?"
+Carabiner answers the question no other tool can: "A bug shipped last week. What agent session wrote this code, what model was it using, and what was the session doing?"
 
-The data already exists. [git-ai](https://github.com/git-ai-project/git-ai) tracks which agent wrote which lines. [agentlytics](https://github.com/f/agentlytics) records full session transcripts. Linear and Jira link PRs to work items. But nobody joins them. Carabiner is the join.
+The data already exists. [git-ai](https://github.com/git-ai-project/git-ai) tracks which agent wrote which lines. [agentlytics](https://github.com/f/agentlytics) records full session transcripts. But nobody joins them. Carabiner is the join.
 
 ## How It Works
 
@@ -12,22 +12,19 @@ The data already exists. [git-ai](https://github.com/git-ai-project/git-ai) trac
 $ carabiner why src/auth/handler.go:47
 
 LINE: src/auth/handler.go:47 (introduced in commit abc1234)
-SESSION: Claude Code session 8f3a2b1c (2026-03-28 14:32-15:47)
+AUTHOR: Claude Code
+CONFIDENCE: high
+
+SESSION: claude_code session 655eb4a6-822f-4d52-8c06-cade4afdcd8d
 MODEL: claude-sonnet-4-5-20250514
-CONFIDENCE: high (deterministic join via git-ai)
+NAME: Implement token refresh flow
+SOURCE: claude-code
+PERIOD: 2026-03-28 14:32 to 2026-03-28 15:47
 
-WORK ITEM: ENG-42 "Implement token refresh flow"
-  Source: branch name (feature/ENG-42)
-  Spec: docs/designs/auth-refresh.md (linked in issue)
-
-SESSION CONTEXT:
-  The agent was implementing token refresh per the spec. It chose to
-  cache the refresh token in-memory rather than using the session store.
-  The spec was ambiguous on storage location (line 34: "persist the token").
-
-SUBSEQUENT TOUCHES:
-  - Commit def5678 (2026-03-29): human edit, no agent session
-  - Commit ghi9012 (2026-03-30): Codex session 4e7f9a2b, same work item
+ATTRIBUTION CHAIN:
+  [OK] line_to_commit: git blame (commit abc1234)
+  [OK] commit_to_session: git-ai note (session a1b2c3d4e5f6g7h8)
+  [OK] session_to_transcript: agentlytics match (session "Implement token refresh flow")
 ```
 
 One command. Zero config. Works with any AI coding agent.
@@ -40,26 +37,14 @@ Carabiner doesn't reinvent collection or attribution. It connects tools that alr
 |-------|------|--------------|
 | **Attribution** | [git-ai](https://github.com/git-ai-project/git-ai) | Line-level authorship via Git Notes. Which agent wrote which lines. |
 | **Collection** | [agentlytics](https://github.com/f/agentlytics) | Session data from all agents. Full transcripts, tool calls, timestamps. |
-| **Join** | **carabiner** | Connects attribution to session data to work items. The forensic query layer. |
-| **Work items** | Linear, Jira, GitHub | PRs linked to issues via branch names and integrations. |
+| **Join** | **carabiner** | Connects attribution to session data. The forensic query layer. |
 
 The join key: git-ai stores `agent_id.id` (the raw conversation UUID) in each Git Note. agentlytics indexes sessions by the same conversation ID. Carabiner reads both and connects them.
-
-## Graceful Degradation
-
-Carabiner works with whatever data sources are available:
-
-| What's installed | Confidence | What you get |
-|-----------------|------------|--------------|
-| git-ai + agentlytics | **High** | Full dossier: session, transcript, model, work item, spec |
-| git-ai only | **Partial** | Session attribution from Git Notes, no transcript data |
-| agentlytics only | **Medium** | Timestamp + file overlap correlation to match sessions to commits |
-| Neither | — | Nothing to join. Install git-ai and agentlytics first. |
 
 ## Quick Start
 
 ```bash
-# 1. Install the foundations (if you haven't already)
+# 1. Install the foundations
 curl -sSL https://usegitai.com/install.sh | bash   # git-ai: line attribution
 npx agentlytics                                      # agentlytics: session collection
 
@@ -76,24 +61,23 @@ carabiner why src/auth/handler.go:47
 ## CLI
 
 ```bash
-carabiner why <file>:<line> [--rev <commit>]   # forensic dossier for a line of code
-carabiner doctor [--json]                       # detect available data sources
+carabiner why <file>:<line> [--rev <commit>] [--json]   # forensic dossier for a line
+carabiner doctor [--json]                                # detect available data sources
 ```
 
 ## Confidence Model
 
-Every hop in the attribution chain carries a confidence label. Carabiner never tells a clean story when the evidence is messy. If the chain is weak, the dossier says so and explains which hop is uncertain.
+Every hop in the attribution chain carries a confidence label: **high** (deterministic join via git-ai) or **missing** (no data for this hop). If any hop is missing, the overall confidence is missing. Carabiner never tells a clean story when the evidence is messy.
 
-| Hop | High | Medium | Low |
-|-----|------|--------|-----|
-| Line to commit | git blame (deterministic) | — | — |
-| Commit to session | git-ai note (hash join) | timestamp + file Jaccard | timestamp only |
-| Session to transcript | agentlytics match | — | — |
-| Commit to work item | explicit trailer or PR link | branch name pattern | commit message grep |
+| Hop | High | Missing |
+|-----|------|---------|
+| Line to commit | git blame (deterministic) | — |
+| Commit to session | git-ai note (hash join) | No note for commit |
+| Session to transcript | agentlytics match | Session not in cache |
 
 ## Philosophy
 
-See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the reasoning behind carabiner's design: why the join is the product, why confidence is core (not UI garnish), why we compose with existing tools instead of competing, and the relationship between attribution, collection, and forensics.
+See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the reasoning behind carabiner's design: why the join is the product, why git-ai is required, why confidence is binary (high or missing), and why we compose with existing tools instead of competing.
 
 ## Relationship to Belayer
 
@@ -101,4 +85,4 @@ See [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) for the reasoning behind carabiner'
 
 ## Status
 
-Active development. Currently validating the proof-of-join between git-ai and agentlytics data. See [docs/TODOS.md](docs/TODOS.md) for the roadmap.
+Active development. Join-layer MVP complete: `carabiner why` and `carabiner doctor` are working. See [docs/TODOS.md](docs/TODOS.md) for the roadmap.
